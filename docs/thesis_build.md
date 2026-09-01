@@ -15,7 +15,7 @@ The script configures MiKTeX Portable and the Perl runtime bundled with Git, the
 runs `latexmk` with `pdflatex` and `biber` as needed. The generated PDF is written to:
 
 ```text
-.tmp/latex-build/main.pdf
+thesis/pdfs/main.pdf
 ```
 
 To use a different output directory:
@@ -28,7 +28,7 @@ To use a different output directory:
 
 - `.venv/`: Python environment for the PBO package and tests.
 - `.tmp/miktex/portable/`: local MiKTeX Portable installation and package repository.
-- `.tmp/latex-build/`: generated PDF and auxiliary LaTeX files.
+- `thesis/pdfs/`: generated PDF and auxiliary LaTeX files.
 - `thesis/`: local LaTeX source, deliberately not tracked in Git.
 
 Do not commit generated PDFs, auxiliary files, package caches, or credentials.

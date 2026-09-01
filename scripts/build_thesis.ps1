@@ -1,5 +1,5 @@
 param(
-    [string]$OutputDirectory = ".tmp\latex-build"
+    [string]$OutputDirectory = "thesis\pdfs"
 )
 
 $ErrorActionPreference = "Stop"
