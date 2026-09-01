@@ -1,12 +1,10 @@
-# Integración con GuroBack
+# GuroBack integration
 
-Aquí se incorporarán pruebas marcadas con `@pytest.mark.gurobi` cuando estén
-disponibles GuroBack, una licencia válida de Gurobi y el formato exacto de sus archivos
-de backbone.
+Tests marked with `@pytest.mark.gurobi` will be added when GuroBack, a valid Gurobi
+license, and the exact backbone file format are available.
 
-La comprobación prevista es:
+The planned check is:
 
 ```text
-transform(backbone(instancia)) == backbone(invert_polarity(instancia))
+transform(backbone(instance)) == backbone(invert_polarity(instance))
 ```
-

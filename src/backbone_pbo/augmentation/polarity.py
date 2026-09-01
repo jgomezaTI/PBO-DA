@@ -1,4 +1,4 @@
-"""Inversión de polaridad mediante la sustitución x = 1 - y."""
+"""Polarity inversion through the substitution x = 1 - y."""
 
 from __future__ import annotations
 
@@ -11,18 +11,18 @@ def invert_polarity(
     instance: PBOInstance,
     variables: Iterable[str] | None = None,
 ) -> PBOInstance:
-    """Invierte global o selectivamente la polaridad de una instancia.
+    """Invert an instance's polarity globally or selectively.
 
-    Si ``variables`` es ``None`` se invierten todas las variables presentes. En las
-    restricciones, las constantes generadas se mueven al lado derecho. En el objetivo
-    se conserva el offset para comparar exactamente valores objetivos.
+    If ``variables`` is ``None``, invert every present variable. In constraints,
+    generated constants move to the right-hand side. The objective offset is
+    preserved to compare objective values exactly.
     """
 
     selected = instance.variables if variables is None else frozenset(variables)
     unknown = selected.difference(instance.variables)
     if unknown:
         names = ", ".join(sorted(unknown))
-        raise ValueError(f"Variables ausentes en la instancia: {names}")
+        raise ValueError(f"Variables missing from the instance: {names}")
 
     objective = None
     if instance.objective is not None:
@@ -50,18 +50,18 @@ def invert_assignment(
     assignment: Mapping[str, int | bool],
     variables: Iterable[str] | None = None,
 ) -> dict[str, int]:
-    """Aplica a una asignación la misma biyección usada por la aumentación."""
+    """Apply the same bijection used by augmentation to an assignment."""
 
     selected = set(assignment) if variables is None else set(variables)
     unknown = selected.difference(assignment)
     if unknown:
         names = ", ".join(sorted(unknown))
-        raise ValueError(f"Variables ausentes en la asignación: {names}")
+        raise ValueError(f"Variables missing from the assignment: {names}")
 
     transformed: dict[str, int] = {}
     for name, raw_value in assignment.items():
         if raw_value not in (0, 1, False, True):
-            raise ValueError(f"{name} debe ser binaria; se recibió {raw_value!r}")
+            raise ValueError(f"{name} must be binary; received {raw_value!r}")
         value = int(raw_value)
         transformed[name] = 1 - value if name in selected else value
     return transformed

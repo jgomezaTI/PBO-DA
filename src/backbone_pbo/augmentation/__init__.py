@@ -1,4 +1,4 @@
-"""Técnicas de aumentación."""
+"""Augmentation techniques."""
 
 from backbone_pbo.augmentation.polarity import invert_assignment, invert_polarity
 

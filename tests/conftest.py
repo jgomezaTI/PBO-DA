@@ -1,4 +1,4 @@
-"""Fixtures que mantienen los artefactos efímeros dentro del repositorio."""
+"""Fixtures that keep ephemeral artifacts inside the repository."""
 
 from pathlib import Path
 from uuid import uuid4
@@ -8,10 +8,10 @@ import pytest
 
 @pytest.fixture
 def repo_tmp_path(request: pytest.FixtureRequest) -> Path:
-    """Crea un directorio efímero local en ``.tmp/pytest``.
+    """Create a local ephemeral directory under ``.tmp/pytest``.
 
-    El sandbox de desarrollo puede bloquear el directorio temporal global de Windows.
-    Estos artefactos no se versionan porque ``.tmp/`` está en ``.gitignore``.
+    The development sandbox may block Windows' global temporary directory. These
+    artifacts are not versioned because ``.tmp/`` is listed in ``.gitignore``.
     """
 
     repository_root = Path(__file__).resolve().parents[1]

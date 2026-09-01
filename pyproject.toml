@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "backbone-pbo"
 version = "0.1.0"
-description = "Aumentación de datos para predicción de backbone en optimización pseudo-booleana"
+description = "Data augmentation for backbone prediction in pseudo-Boolean optimization"
 readme = "README.md"
 requires-python = ">=3.11"
 license = { text = "MIT" }
@@ -30,7 +30,7 @@ packages = ["src/backbone_pbo"]
 addopts = "-ra --strict-markers -p no:cacheprovider"
 testpaths = ["tests"]
 markers = [
-  "gurobi: requiere una instalación y licencia válidas de Gurobi",
+  "gurobi: requires a valid Gurobi installation and license",
 ]
 
 [tool.ruff]

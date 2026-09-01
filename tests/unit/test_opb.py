@@ -4,7 +4,7 @@ from backbone_pbo.io.opb import OPBFormatError, dumps_opb, loads_opb
 
 SAMPLE = """\
 * #variable= 3 #constraint= 2 #equal= 1 intsize= 4
-* ejemplo
+* example
 min: +2 x1 -3 x2 +1 x3 ;
 +1 x1 +2 x2 >= +1 ;
 -1 x1 +1 x3 = 0 ;
@@ -38,10 +38,10 @@ def test_writer_normalizes_less_equal():
 
 
 def test_rejects_nonlinear_terms():
-    with pytest.raises(OPBFormatError, match="Fragmento no soportado"):
+    with pytest.raises(OPBFormatError, match="Unsupported fragment"):
         loads_opb("* #variable= 2 #constraint= 1\n+1 x1 x2 >= 1;\n")
 
 
 def test_validates_header_counts():
-    with pytest.raises(OPBFormatError, match="declara 2 variables"):
+    with pytest.raises(OPBFormatError, match="header declares 2 variables"):
         loads_opb("* #variable= 2 #constraint= 1\n+1 x1 >= 1;\n")

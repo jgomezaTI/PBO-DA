@@ -1,4 +1,4 @@
-"""Herramientas de aumentación para instancias PBO y etiquetas de backbone."""
+"""Augmentation tools for PBO instances and backbone labels."""
 
 from backbone_pbo.augmentation.polarity import invert_assignment, invert_polarity
 from backbone_pbo.backbone import (

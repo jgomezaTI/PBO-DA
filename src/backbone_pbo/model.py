@@ -1,4 +1,4 @@
-"""Modelo inmutable de una instancia PBO lineal."""
+"""Immutable model for a linear PBO instance."""
 
 from __future__ import annotations
 
@@ -11,7 +11,7 @@ ComparisonOperator = Literal[">=", "=", "<="]
 
 @dataclass(frozen=True)
 class LinearExpression:
-    """Expresión lineal entera sobre variables binarias."""
+    """Integer linear expression over binary variables."""
 
     coefficients: Mapping[str, int] = field(default_factory=dict)
     constant: int = 0
@@ -28,20 +28,20 @@ class LinearExpression:
         missing = self.variables.difference(assignment)
         if missing:
             names = ", ".join(sorted(missing, key=_variable_sort_key))
-            raise ValueError(f"Faltan valores para: {names}")
+            raise ValueError(f"Missing assignment values for: {names}")
 
         total = self.constant
         for name, coefficient in self.coefficients.items():
             value = assignment[name]
             if value not in (0, 1, False, True):
-                raise ValueError(f"{name} debe ser binaria; se recibió {value!r}")
+                raise ValueError(f"{name} must be binary; received {value!r}")
             total += coefficient * int(value)
         return total
 
 
 @dataclass(frozen=True)
 class Constraint:
-    """Restricción pseudo-booleana lineal."""
+    """Linear pseudo-Boolean constraint."""
 
     expression: LinearExpression
     operator: ComparisonOperator
@@ -49,7 +49,7 @@ class Constraint:
 
     def __post_init__(self) -> None:
         if self.operator not in {">=", "=", "<="}:
-            raise ValueError(f"Operador no soportado: {self.operator}")
+            raise ValueError(f"Unsupported operator: {self.operator}")
 
     def is_satisfied(self, assignment: Mapping[str, int | bool]) -> bool:
         lhs = self.expression.evaluate(assignment)
@@ -62,7 +62,7 @@ class Constraint:
 
 @dataclass(frozen=True)
 class PBOInstance:
-    """Instancia PBO/PBS lineal con comentarios opcionales."""
+    """Linear PBO/PBS instance with optional comments."""
 
     constraints: tuple[Constraint, ...]
     objective: LinearExpression | None = None
@@ -87,7 +87,7 @@ class PBOInstance:
 
 
 def variable_sort_key(name: str) -> tuple[int, str]:
-    """Ordena x2 antes de x10 y deja nombres no estándar al final."""
+    """Sort x2 before x10 and place non-standard names at the end."""
 
     return _variable_sort_key(name)
 

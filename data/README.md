@@ -1,36 +1,35 @@
-# Datos
+# Data
 
-Los datasets no se versionan directamente en Git. Antes de ejecutar experimentos se
-debe registrar, como mínimo:
+Datasets are not versioned directly in Git. Before running experiments, record at
+least:
 
-- fuente y licencia;
-- versión o fecha de obtención;
-- familias y número de instancias;
-- checksums de los archivos originales;
-- formato de los backbones;
-- particiones train/validation/test y su seed;
-- procedimiento exacto de generación o transformación.
+- source and license;
+- version or acquisition date;
+- families and number of instances;
+- checksums of the original files;
+- backbone format;
+- train/validation/test partitions and their seed;
+- the exact generation or transformation procedure.
 
-La aumentación se aplica **después** de crear las particiones y solamente a train para
-evitar leakage entre una instancia y su versión invertida.
+Apply augmentation **after** creating the partitions and only to the training split
+to avoid leakage between an instance and its inverted version.
 
-## Estado del repositorio BackPaS
+## BackPaS repository status
 
-El repositorio público de BackPaS contiene el código de procesamiento y un archivo
-`dataset/dataset.txt`, pero no contiene las instancias ni los archivos `.backbone` de
-los experimentos. Su README indica que las instancias deben ubicarse manualmente en
-`dataset/DATASET_NAME/instance/`; los backbones pueden colocarse en
-`dataset/DATASET_NAME/backbone/` o generarse con GuroBack. Luego se ejecutan
-`1_create_ml_dataset.py` y `2_create_partitions.py`.
+The public BackPaS repository contains processing code and a `dataset/dataset.txt`
+file, but not the experiment instances or `.backbone` files. Its README says that
+instances must be placed manually in `dataset/DATASET_NAME/instance/`; backbones can
+be placed in `dataset/DATASET_NAME/backbone/` or generated with GuroBack. Then run
+`1_create_ml_dataset.py` and `2_create_partitions.py`.
 
-El formato de backbone observado en `1_create_ml_dataset.py` es:
+The backbone format observed in `1_create_ml_dataset.py` is:
 
 ```text
 b -x1   # B0
 b x2    # B1
-b 0     # extracción completa; debe ser la última línea
+b 0     # complete extraction; must be the last line
 ```
 
-La extracción requiere GuroBack, Gurobi y una licencia válida. Por ahora el repositorio
-incluye una fixture pequeña para probar el parser de este formato, pero no inventa ni
-redistribuye los datasets experimentales.
+Extraction requires GuroBack, Gurobi, and a valid license. For now, this repository
+includes a small fixture to test the parser for this format, but does not invent or
+redistribute experimental datasets.

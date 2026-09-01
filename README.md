@@ -1,63 +1,63 @@
 # backbonePBO
 
-Proyecto de TT1 sobre técnicas de aumentación de datos para mitigar el desbalance
-del backbone en GNN aplicadas a Optimización Pseudo-Booleana (PBO).
+TT1 project on data augmentation techniques to mitigate backbone class imbalance
+in GNNs for Pseudo-Boolean Optimization (PBO).
 
-El repositorio estudia las aumentaciones como aporte principal. BackPaS, GuroBack y
-otros trabajos previos pueden usarse como infraestructura o baseline, pero no son el
-objetivo del proyecto.
+The repository focuses on augmentation methods as the main contribution. BackPaS,
+GuroBack, and related prior work may be used as infrastructure or baselines, but
+they are not the project's primary scope.
 
-## Estado actual
+## Current status
 
-La primera técnica implementada es la **inversión de polaridad** en instancias OPB
-lineales. Para un conjunto de variables se aplica la sustitución
+The first implemented technique is **polarity inversion** for linear OPB instances.
+For a selected set of variables, the transformation applies
 
 ```text
 x_i = 1 - y_i
 ```
 
-La transformación induce una biyección entre asignaciones originales y aumentadas,
-preserva factibilidad y optimalidad, y transforma las etiquetas del backbone así:
+The transformation is a bijection between original and augmented assignments,
+preserves feasibility and optimality, and transforms backbone labels as follows:
 
 ```text
 B0 <-> B1
 NB  -> NB
 ```
 
-El soporte actual se limita deliberadamente al formato OPB lineal restringido
-(`min:`, restricciones `>=` o `=`, variables `x1` a `xN`). Los productos no lineales,
-WBO y la integración con GuroBack todavía no forman parte del núcleo.
+Current support is deliberately limited to the restricted linear OPB format
+(`min:`, `>=` or `=` constraints, and variables `x1` through `xN`). Nonlinear
+products, WBO, and GuroBack integration are not yet part of the core package.
 
-## Instalación para desarrollo
+## Development installation
 
 ```bash
 python -m venv .venv
 .venv/Scripts/python -m pip install -e ".[dev]"
 ```
 
-En Linux/macOS, el ejecutable del entorno es `.venv/bin/python`.
+On Linux/macOS, use `.venv/bin/python` instead.
 
-## Uso
+## Usage
 
-Invertir todas las variables:
-
-```bash
-backbone-pbo invert entrada.opb salida.opb
-```
-
-Invertir solo algunas variables:
+Invert all variables:
 
 ```bash
-backbone-pbo invert entrada.opb salida.opb --variables x1 x3 x8
+backbone-pbo invert input.opb output.opb
 ```
 
-Inspeccionar una instancia:
+Invert only selected variables:
 
 ```bash
-backbone-pbo inspect entrada.opb
+backbone-pbo invert input.opb output.opb --variables x1 x3 x8
 ```
 
-Ejecutar las verificaciones locales:
+Inspect an instance:
+
+```bash
+backbone-pbo inspect input.opb
+```
+
+Run the local checks:
 
 ```bash
 ruff check .
@@ -65,33 +65,33 @@ ruff format --check .
 pytest
 ```
 
-Las fixtures que necesitan escribir archivos usan `.tmp/pytest-local/` dentro del
-repositorio. Esa carpeta está ignorada por Git; así las pruebas no dependen del
-directorio temporal global de Windows.
+Fixtures that write files use `.tmp/pytest-local/` inside the repository. This
+directory is ignored by Git, so tests do not depend on the global Windows temporary
+directory.
 
-## Diseño experimental inicial
+## Initial experimental design
 
-1. Obtener las instancias, backbones y particiones originales.
-2. Caracterizar B0, B1 y NB por instancia, familia y partición.
-3. Mantener validation y test sin aumentación.
-4. Comparar el mismo entrenamiento con `train original` frente a
-   `train original + train invertido`.
-5. Usar las mismas semillas e hiperparámetros y reportar métricas macro y por clase.
+1. Obtain the original instances, backbones, and partitions.
+2. Characterize B0, B1, and NB by instance, family, and partition.
+3. Keep validation and test splits free of augmentation.
+4. Compare the same training setup using `train original` versus
+   `train original + train inverted`.
+5. Use the same seeds and hyperparameters, and report macro and per-class metrics.
 
-Los detalles matemáticos y las propiedades verificadas están en
+The mathematical details and verified properties are documented in
 [`docs/polarity_inversion.md`](docs/polarity_inversion.md).
 
-Para conectar una plantilla existente de Overleaf de forma segura, consulta
+For safe integration with an existing Overleaf template, see
 [`docs/overleaf.md`](docs/overleaf.md).
 
-## Estructura
+## Repository structure
 
 ```text
-src/backbone_pbo/       modelo, parser OPB, aumentación y CLI
-tests/unit/             pruebas deterministas
-tests/property/         propiedades matemáticas con Hypothesis
-tests/integration/      futuras pruebas que requieren GuroBack/Gurobi
-configs/                configuraciones experimentales iniciales
-data/README.md          contrato de datos y trazabilidad
-docs/                   decisiones matemáticas y metodológicas
+src/backbone_pbo/       model, OPB parser, augmentation, and CLI
+tests/unit/              deterministic tests
+tests/property/          mathematical properties tested with Hypothesis
+tests/integration/       future tests requiring GuroBack/Gurobi
+configs/                 initial experiment configurations
+data/README.md           data contract and provenance requirements
+docs/                    mathematical and methodological decisions
 ```

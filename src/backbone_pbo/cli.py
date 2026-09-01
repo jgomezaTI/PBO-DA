@@ -1,4 +1,4 @@
-"""Interfaz de línea de comandos."""
+"""Command-line interface."""
 
 from __future__ import annotations
 
@@ -16,22 +16,22 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="backbone-pbo")
     subparsers = parser.add_subparsers(dest="command", required=True)
 
-    inspect_parser = subparsers.add_parser("inspect", help="resume una instancia OPB")
+    inspect_parser = subparsers.add_parser("inspect", help="summarize an OPB instance")
     inspect_parser.add_argument("input", type=Path)
     inspect_parser.set_defaults(handler=_inspect)
 
-    invert_parser = subparsers.add_parser("invert", help="invierte polaridades")
+    invert_parser = subparsers.add_parser("invert", help="invert polarities")
     invert_parser.add_argument("input", type=Path)
     invert_parser.add_argument("output", type=Path)
     invert_parser.add_argument(
         "--variables",
         nargs="+",
-        help="variables a invertir; si se omite, se invierten todas",
+        help="variables to invert; if omitted, invert all variables",
     )
     invert_parser.add_argument(
         "--no-provenance",
         action="store_true",
-        help="no agrega un comentario que identifica la aumentación",
+        help="do not add a comment identifying the augmentation",
     )
     invert_parser.set_defaults(handler=_invert)
     return parser

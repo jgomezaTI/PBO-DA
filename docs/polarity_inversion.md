@@ -1,73 +1,72 @@
-# Inversión de polaridad
+# Polarity inversion
 
-## Definición
+## Definition
 
-Sea una instancia PBO lineal con variables binarias. Para un subconjunto `F` de
-variables se define una nueva asignación mediante:
+Let a linear PBO instance have binary variables. For a subset `F` of variables,
+define a new assignment as follows:
 
 ```text
-y_i = 1 - x_i   si i pertenece a F
-y_i = x_i       en otro caso
+y_i = 1 - x_i   if i belongs to F
+y_i = x_i       otherwise
 ```
 
-Como la transformación es su propia inversa, establece una biyección entre las
-asignaciones de ambas instancias.
+Because the transformation is its own inverse, it establishes a bijection between
+assignments of the two instances.
 
-## Restricciones
+## Constraints
 
-Para una restricción
+For a constraint
 
 ```text
 sum(a_i x_i) >= b
 ```
 
-la sustitución de las variables de `F` produce
+substituting variables in `F` gives
 
 ```text
-sum(i no en F, a_i y_i) + sum(i en F, a_i (1 - y_i)) >= b
+sum(i not in F, a_i y_i) + sum(i in F, a_i (1 - y_i)) >= b
 ```
 
-y, al mover la constante al lado derecho:
+Moving the constant to the right-hand side yields
 
 ```text
-sum(i no en F, a_i y_i) - sum(i en F, a_i y_i)
-    >= b - sum(i en F, a_i)
+sum(i not in F, a_i y_i) - sum(i in F, a_i y_i)
+    >= b - sum(i in F, a_i)
 ```
 
-La misma derivación vale para igualdades.
+The same derivation applies to equalities.
 
-## Objetivo
+## Objective
 
-El objetivo `sum(c_i x_i)` se transforma en:
+The objective `sum(c_i x_i)` becomes:
 
 ```text
-sum(i no en F, c_i y_i) - sum(i en F, c_i y_i)
-    + sum(i en F, c_i)
+sum(i not in F, c_i y_i) - sum(i in F, c_i y_i)
+    + sum(i in F, c_i)
 ```
 
-El formato OPB restringido no escribe una constante en `min:`. El escritor guarda
-ese desplazamiento en un comentario `backbone-pbo objective-offset`. Los solvers OPB
-pueden ignorarlo porque no altera `argmin`; debe sumarse al valor informado por el
-solver cuando se comparen valores objetivos entre instancias.
+The restricted OPB format does not write a constant in `min:`. The writer stores
+this offset in a `backbone-pbo objective-offset` comment. OPB solvers may ignore it
+because it does not change `argmin`; add it to the solver-reported value when
+comparing objective values across instances.
 
 ## Backbone
 
-Para una variable invertida:
+For an inverted variable:
 
-- si estaba fija en 0 en todas las soluciones óptimas, queda fija en 1;
-- si estaba fija en 1, queda fija en 0;
-- si variaba entre soluciones óptimas, continúa variando.
+- a variable fixed to 0 in every optimal solution becomes fixed to 1;
+- a variable fixed to 1 becomes fixed to 0;
+- a variable that varies across optimal solutions continues to vary.
 
-Las etiquetas de variables no invertidas no cambian.
+Labels for non-inverted variables do not change.
 
-## Propiedades verificadas automáticamente
+## Automatically verified properties
 
-- correspondencia de factibilidad para toda asignación binaria;
-- correspondencia exacta del valor objetivo, incluyendo el offset;
-- involución: aplicar dos veces la misma inversión recupera el modelo;
-- preservación del número de variables y restricciones;
-- transformación B0/B1/NB esperada.
+- feasibility correspondence for every binary assignment;
+- exact objective-value correspondence, including the offset;
+- involution: applying the same inversion twice recovers the model;
+- preservation of the number of variables and constraints;
+- the expected B0/B1/NB transformation.
 
-Estas pruebas validan la implementación. La utilidad para aprendizaje automático se
-debe evaluar por separado mediante experimentos controlados.
-
+These tests validate the implementation. The usefulness for machine learning must
+be evaluated separately through controlled experiments.

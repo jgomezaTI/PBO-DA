@@ -1,4 +1,4 @@
-"""Parser y escritor del subconjunto lineal restringido de OPB."""
+"""Parser and writer for the restricted linear OPB subset."""
 
 from __future__ import annotations
 
@@ -14,14 +14,14 @@ _OFFSET_RE = re.compile(r"backbone-pbo\s+objective-offset:\s*([+-]?\d+)", re.IGN
 
 
 class OPBFormatError(ValueError):
-    """El archivo no pertenece al subconjunto OPB lineal soportado."""
+    """The file is outside the supported restricted linear OPB subset."""
 
 
 def loads_opb(content: str, *, validate_header: bool = True) -> PBOInstance:
-    """Lee texto OPB lineal restringido.
+    """Read restricted linear OPB text.
 
-    Por tolerancia, también acepta ``<=`` y sentencias que ocupan varias líneas. El
-    escritor siempre normaliza ``<=`` a ``>=``.
+    For convenience, ``<=`` and statements spanning multiple lines are also
+    accepted. The writer always normalizes ``<=`` to ``>=``.
     """
 
     comments: list[str] = []
@@ -46,14 +46,16 @@ def loads_opb(content: str, *, validate_header: bool = True) -> PBOInstance:
         raise OPBFormatError("Cada sentencia OPB debe terminar en ';'")
     statements = [part.strip() for part in parts[:-1] if part.strip()]
     if not statements:
-        raise OPBFormatError("La instancia no contiene objetivo ni restricciones")
+        raise OPBFormatError("The instance contains neither an objective nor constraints")
 
     objective: LinearExpression | None = None
     if statements[0].startswith("min:"):
         objective = _parse_expression(statements.pop(0)[len("min:") :])
         objective = LinearExpression(objective.coefficients, constant=objective_offset)
     elif objective_offset:
-        raise OPBFormatError("Se declaró objective-offset en una instancia sin objetivo")
+        raise OPBFormatError(
+            "An objective offset was declared for an instance without an objective"
+        )
 
     constraints = tuple(_parse_constraint(statement) for statement in statements)
     instance = PBOInstance(
@@ -67,7 +69,7 @@ def loads_opb(content: str, *, validate_header: bool = True) -> PBOInstance:
 
 
 def dumps_opb(instance: PBOInstance) -> str:
-    """Escribe una representación canónica compatible con OPB lineal restringido."""
+    """Write a canonical representation compatible with restricted linear OPB."""
 
     variables = sorted(instance.variables, key=variable_sort_key)
     _validate_restricted_variable_sequence(variables)
@@ -115,7 +117,7 @@ def write_opb(instance: PBOInstance, path: str | Path) -> None:
 def _parse_constraint(statement: str) -> Constraint:
     match = _CONSTRAINT_RE.fullmatch(statement)
     if match is None:
-        raise OPBFormatError(f"Restricción no soportada: {statement!r}")
+        raise OPBFormatError(f"Unsupported constraint: {statement!r}")
     return Constraint(
         expression=_parse_expression(match.group("lhs")),
         operator=match.group("operator"),  # type: ignore[arg-type]
@@ -128,25 +130,25 @@ def _parse_expression(source: str) -> LinearExpression:
     position = 0
     matches = list(_TERM_RE.finditer(source))
     if not matches:
-        raise OPBFormatError(f"Expresión lineal vacía o no soportada: {source!r}")
+        raise OPBFormatError(f"Empty or unsupported linear expression: {source!r}")
 
     for match in matches:
         if source[position : match.start()].strip():
             fragment = source[position : match.start()].strip()
-            raise OPBFormatError(f"Fragmento no soportado en expresión: {fragment!r}")
+            raise OPBFormatError(f"Unsupported expression fragment: {fragment!r}")
         coefficient = int(match.group("coefficient"))
         variable = match.group("variable")
         coefficients[variable] = coefficients.get(variable, 0) + coefficient
         position = match.end()
 
     if source[position:].strip():
-        raise OPBFormatError(f"Fragmento no soportado: {source[position:].strip()!r}")
+        raise OPBFormatError(f"Unsupported fragment: {source[position:].strip()!r}")
     return LinearExpression(coefficients)
 
 
 def _format_expression(expression: LinearExpression) -> str:
     if not expression.coefficients:
-        raise OPBFormatError("OPB restringido no admite una suma lineal vacía")
+        raise OPBFormatError("Restricted OPB does not allow an empty linear sum")
     terms = []
     for variable in sorted(expression.coefficients, key=variable_sort_key):
         coefficient = expression.coefficients[variable]
@@ -163,13 +165,13 @@ def _validate_declared_counts(instance: PBOInstance, comments: list[str]) -> Non
     declared_variables, declared_constraints = map(int, header.groups())
     if declared_variables != len(instance.variables):
         raise OPBFormatError(
-            f"El encabezado declara {declared_variables} variables, pero se encontraron "
-            f"{len(instance.variables)}"
+            f"The header declares {declared_variables} variables, but "
+            f"{len(instance.variables)} were found"
         )
     if declared_constraints != len(instance.constraints):
         raise OPBFormatError(
-            f"El encabezado declara {declared_constraints} restricciones, pero se encontraron "
-            f"{len(instance.constraints)}"
+            f"The header declares {declared_constraints} constraints, but "
+            f"{len(instance.constraints)} were found"
         )
 
 
@@ -177,8 +179,8 @@ def _validate_restricted_variable_sequence(variables: list[str]) -> None:
     expected = [f"x{index}" for index in range(1, len(variables) + 1)]
     if variables != expected:
         raise OPBFormatError(
-            "OPB restringido exige variables contiguas x1..xN; "
-            f"se encontraron {', '.join(variables) or 'ninguna'}"
+            "Restricted OPB requires contiguous variables x1..xN; "
+            f"found {', '.join(variables) or 'none'}"
         )
 
 

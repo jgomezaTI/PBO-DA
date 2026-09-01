@@ -1,4 +1,4 @@
-"""Transformaciones de etiquetas de backbone."""
+"""Backbone label transformations."""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ from pathlib import Path
 
 
 class BackboneLabel(IntEnum):
-    """Codificación usada por el pipeline de referencia."""
+    """Encoding used by the reference pipeline."""
 
     B0 = 0
     B1 = 1
@@ -16,11 +16,11 @@ class BackboneLabel(IntEnum):
 
 
 class BackboneFormatError(ValueError):
-    """El archivo no sigue el formato de salida de GuroBack usado por BackPaS."""
+    """The file does not follow the GuroBack output format used by BackPaS."""
 
 
 def flip_backbone_label(label: BackboneLabel | int) -> BackboneLabel:
-    """Intercambia B0/B1 y conserva NB."""
+    """Swap B0/B1 and preserve NB."""
 
     normalized = BackboneLabel(label)
     if normalized == BackboneLabel.B0:
@@ -34,13 +34,13 @@ def transform_backbone(
     labels: Mapping[str, BackboneLabel | int],
     flipped_variables: Iterable[str] | None = None,
 ) -> dict[str, BackboneLabel]:
-    """Transforma las etiquetas para una inversión global o selectiva."""
+    """Transform labels for a global or selective inversion."""
 
     selected = set(labels) if flipped_variables is None else set(flipped_variables)
     unknown = selected.difference(labels)
     if unknown:
         names = ", ".join(sorted(unknown))
-        raise ValueError(f"Variables sin etiqueta de backbone: {names}")
+        raise ValueError(f"Variables without backbone labels: {names}")
 
     return {
         name: flip_backbone_label(label) if name in selected else BackboneLabel(label)
@@ -52,10 +52,10 @@ def loads_backbone(
     content: str,
     variables: Iterable[str],
 ) -> dict[str, BackboneLabel]:
-    """Lee un backbone de GuroBack y completa las variables no-backbone con ``NB``.
+    """Read a GuroBack backbone and fill non-backbone variables with ``NB``.
 
-    BackPaS utiliza líneas ``b xN`` para B1, ``b -xN`` para B0 y una línea final
-    ``b 0`` como marcador de extracción completa.
+    BackPaS uses ``b xN`` lines for B1, ``b -xN`` lines for B0, and a final ``b 0``
+    line as the complete-extraction marker.
     """
 
     labels = {name: BackboneLabel.NB for name in variables}
@@ -64,32 +64,32 @@ def loads_backbone(
     for line_number, line in enumerate(lines, start=1):
         parts = line.split()
         if len(parts) != 2 or parts[0] != "b":
-            raise BackboneFormatError(f"Línea {line_number} inválida: {line!r}")
+            raise BackboneFormatError(f"Invalid line {line_number}: {line!r}")
         token = parts[1]
         if token == "0":
             if line_number != len(lines):
-                raise BackboneFormatError("El marcador 'b 0' debe ser la última línea")
+                raise BackboneFormatError("The 'b 0' marker must be the last line")
             complete = True
             continue
         label = BackboneLabel.B0 if token.startswith("-") else BackboneLabel.B1
         variable = token[1:] if token.startswith("-") else token
         if variable not in labels:
-            raise BackboneFormatError(f"Variable {variable!r} no pertenece a la instancia")
+            raise BackboneFormatError(f"Variable {variable!r} does not belong to the instance")
         labels[variable] = label
 
     if not complete:
-        raise BackboneFormatError("Falta el marcador final 'b 0'")
+        raise BackboneFormatError("Missing final 'b 0' marker")
     return labels
 
 
 def read_backbone(path: str | Path, variables: Iterable[str]) -> dict[str, BackboneLabel]:
-    """Lee un archivo ``.backbone`` en ASCII."""
+    """Read an ASCII ``.backbone`` file."""
 
     return loads_backbone(Path(path).read_text(encoding="ascii"), variables)
 
 
 def dumps_backbone(labels: Mapping[str, BackboneLabel | int]) -> str:
-    """Escribe un backbone en el formato consumido por BackPaS."""
+    """Write a backbone in the format consumed by BackPaS."""
 
     lines = []
     for name in sorted(labels):
