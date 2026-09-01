@@ -20,6 +20,8 @@ artifacts/
 
 # The thesis template is kept locally and is not versioned in this repository.
 /thesis/
+# Generated thesis PDFs and auxiliary files are ignored explicitly as well.
+/thesis/pdfs/
 
 # Editors and operating system
 .idea/
