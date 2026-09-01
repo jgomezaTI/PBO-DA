@@ -1,0 +1,19 @@
+experiment:
+  name: polarity_global
+  status: blocked_until_dataset_and_training_config_are_available
+
+seed: 42
+
+dataset:
+  manifest: null
+  augment_train_only: true
+
+augmentation:
+  name: polarity_inversion
+  scope: all_variables
+  include_original_instances: true
+
+training:
+  implementation: null
+  config_source: null
+

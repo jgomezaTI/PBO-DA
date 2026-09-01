@@ -1,0 +1,41 @@
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[project]
+name = "backbone-pbo"
+version = "0.1.0"
+description = "Aumentación de datos para predicción de backbone en optimización pseudo-booleana"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "Javier Gómez" }]
+dependencies = []
+
+[project.optional-dependencies]
+dev = [
+  "hypothesis>=6.130",
+  "pytest>=8.3",
+  "pytest-cov>=6.0",
+  "ruff>=0.11",
+]
+
+[project.scripts]
+backbone-pbo = "backbone_pbo.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/backbone_pbo"]
+
+[tool.pytest.ini_options]
+addopts = "-ra --strict-markers -p no:cacheprovider"
+testpaths = ["tests"]
+markers = [
+  "gurobi: requiere una instalación y licencia válidas de Gurobi",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM", "RUF"]
