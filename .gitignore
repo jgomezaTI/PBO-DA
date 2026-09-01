@@ -11,14 +11,17 @@ htmlcov/
 dist/
 build/
 
-# Los datasets y resultados se reconstruyen; solo se versiona su documentación.
+# Datasets and results are reproducible; only their documentation is versioned.
 data/*
 !data/README.md
 results/
 artifacts/
 *.pth
 
-# Editores y sistema operativo
+# The thesis template is kept locally and is not versioned in this repository.
+/thesis/
+
+# Editors and operating system
 .idea/
 .vscode/
 .DS_Store
