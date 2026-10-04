@@ -13,6 +13,17 @@ authors = [{ name = "Javier Gómez" }]
 dependencies = []
 
 [project.optional-dependencies]
+data = [
+  "datasets>=4.1,<5",
+  "huggingface-hub>=0.34,<2",
+  "pyscipopt==6.2.1",
+]
+ml = [
+  "numpy>=2.1",
+  "scikit-learn>=1.6",
+  "torch>=2.7",
+  "torch-geometric>=2.6",
+]
 dev = [
   "hypothesis>=6.130",
   "pytest>=8.3",
@@ -31,6 +42,8 @@ addopts = "-ra --strict-markers -p no:cacheprovider"
 testpaths = ["tests"]
 markers = [
   "gurobi: requires a valid Gurobi installation and license",
+  "network: requires internet access",
+  "slow: long-running integration or training test",
 ]
 
 [tool.ruff]

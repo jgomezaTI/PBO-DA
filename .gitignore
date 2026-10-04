@@ -7,9 +7,15 @@ __pycache__/
 .coverage
 htmlcov/
 .venv/
+.runtime/
 .tmp/
+/.context
 dist/
 build/
+
+# Local checkouts of the upstream research software. Only external/README.md is tracked.
+external/*
+!external/README.md
 
 # Datasets and results are reproducible; only their documentation is versioned.
 data/*
@@ -17,6 +23,10 @@ data/*
 results/
 artifacts/
 *.pth
+/gurobi.log
+
+# Local reference material; cite the public source instead of committing the PDF.
+/Tesis_Bryan_Alvarado.pdf
 
 # The thesis template is kept locally and is not versioned in this repository.
 /thesis/

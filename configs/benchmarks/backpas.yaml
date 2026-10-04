@@ -1,0 +1,36 @@
+suite: backpas
+source:
+  repository: https://github.com/bryan-alvarado-ulloa/backpas
+  thesis: https://cris.usm.cl/entities/tesis/e3f32d62-3f6e-41af-b189-b77db43c62ce
+
+benchmarks:
+  - id: MIS
+    name: Maximum Independent Set
+    variable_domain: binary
+    status: in_scope
+    execution_status: awaiting_dataset_artifacts
+    priority: 2
+  - id: MVC
+    name: Minimum Vertex Cover
+    variable_domain: binary
+    status: in_scope
+    execution_status: baseline_seed_0_running
+    priority: 1
+  - id: CA
+    name: Combinatorial Auctions
+    variable_domain: binary
+    status: in_scope
+    execution_status: awaiting_dataset_artifacts
+    priority: 3
+
+excluded_reference_benchmarks:
+  - id: IP
+    name: Item Placement
+    variable_domain: mixed_integer
+    status: incompatible_with_current_pbo_pipeline
+    reason: BackPaS excludes this ConPaS benchmark because it has non-binary variables.
+
+scope_decisions:
+  requested_problem_count: 4
+  confirmed_compatible_problem_count: 3
+  fourth_problem: pending_supervisor_confirmation
