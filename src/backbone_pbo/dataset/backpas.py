@@ -360,10 +360,7 @@ def collect_training_results(
             for metric in ("precision", "recall", "f1_score")
         }
     confusion = [
-        [
-            float(best[f"confusion_matrix_cm_{row}_{column}"])
-            for column in class_names
-        ]
+        [float(best[f"confusion_matrix_cm_{row}_{column}"]) for column in class_names]
         for row in class_names
     ]
     metrics["confusion_matrix_normalized"] = confusion
