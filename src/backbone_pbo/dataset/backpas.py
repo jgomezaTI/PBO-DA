@@ -6,6 +6,7 @@ import csv
 import json
 import os
 import pickle
+import platform
 import shutil
 import subprocess
 from collections.abc import Iterable
@@ -23,6 +24,12 @@ class BackPaSError(RuntimeError):
 
 def repository_root() -> Path:
     return Path(__file__).resolve().parents[3]
+
+
+def default_runtime() -> str:
+    """Use WSL from Windows and execute tools directly on Linux."""
+
+    return "wsl" if platform.system() == "Windows" else "native"
 
 
 def ensure_free_space(path: Path, minimum_gib: int = 20) -> None:
@@ -107,12 +114,19 @@ def extract_backbones(
     partitions: tuple[str, ...] = ("train", "validation"),
     threads: int = 4,
     distribution: str = "Ubuntu",
+    runtime: str | None = None,
     binary_path: str | Path | None = None,
     limits: dict[str, int] | None = None,
 ) -> dict[str, int]:
     root = Path(dataset_dir).resolve()
+    runtime = runtime or default_runtime()
     ensure_free_space(root)
-    binary = Path(binary_path) if binary_path else repository_root() / ".runtime/wsl/bin/guroback"
+    runtime_directory = "wsl" if runtime == "wsl" else "linux"
+    binary = (
+        Path(binary_path)
+        if binary_path
+        else repository_root() / f".runtime/{runtime_directory}/bin/guroback"
+    )
     if not binary.exists():
         raise BackPaSError(
             f"GuroBack binary not found at {binary}. Run scripts/setup_wsl_runtime.ps1 first."
@@ -121,7 +135,7 @@ def extract_backbones(
     log_dir = root / "backbone_extraction_log"
     backbone_dir.mkdir(parents=True, exist_ok=True)
     log_dir.mkdir(parents=True, exist_ok=True)
-    binary_wsl = windows_to_wsl(binary, distribution=distribution)
+    executable = _runtime_path(binary, runtime=runtime, distribution=distribution)
     stats = {"selected": 0, "extracted": 0, "skipped": 0, "failed": 0}
 
     for partition, name in _selected_instances(root, partitions, limits):
@@ -139,19 +153,16 @@ def extract_backbones(
 
         partial = destination.with_name(f".{destination.name}.partial")
         partial.unlink(missing_ok=True)
-        command = [
-            "wsl",
-            "--distribution",
-            distribution,
-            "--",
-            binary_wsl,
+        tool_arguments = [
+            executable,
             f"Threads={threads}",
             "FeasibilityTol=1e-9",
             "OptimalityTol=1e-9",
             "IntFeasTol=1e-9",
-            windows_to_wsl(instance, distribution=distribution),
-            windows_to_wsl(partial, distribution=distribution),
+            _runtime_path(instance, runtime=runtime, distribution=distribution),
+            _runtime_path(partial, runtime=runtime, distribution=distribution),
         ]
+        command = _runtime_command(tool_arguments, runtime=runtime, distribution=distribution)
         completed = subprocess.run(command, check=False, capture_output=True, text=True)
         log_payload = {
             "instance": name,
@@ -189,8 +200,10 @@ def prepare_backpas(
     *,
     graph_type: str = "literals",
     distribution: str = "Ubuntu",
+    runtime: str | None = None,
     limits: dict[str, int] | None = None,
 ) -> dict[str, int]:
+    runtime = runtime or default_runtime()
     if graph_type not in {"literals", "variables"}:
         raise BackPaSError(f"Unsupported graph type: {graph_type}")
     root = Path(dataset_dir).resolve()
@@ -210,19 +223,14 @@ def prepare_backpas(
     if not backpas.is_dir():
         raise BackPaSError("external/backpas is missing; run scripts/setup_upstreams.ps1")
     script = backpas / "src/1_create_ml_dataset.py"
-    command = [
-        "wsl",
-        "--distribution",
-        distribution,
-        "--",
-        "bash",
-        "-lc",
-        _micromamba_command(
-            f"python {shell_quote(windows_to_wsl(script, distribution=distribution))} "
-            f"--dataset_path {shell_quote(windows_to_wsl(root, distribution=distribution))} "
-            f"--graph_type {shell_quote(graph_type)}"
-        ),
-    ]
+    script_runtime = _runtime_path(script, runtime=runtime, distribution=distribution)
+    root_runtime = _runtime_path(root, runtime=runtime, distribution=distribution)
+    arguments = (
+        f"python {shell_quote(script_runtime)} "
+        f"--dataset_path {shell_quote(root_runtime)} "
+        f"--graph_type {shell_quote(graph_type)}"
+    )
+    command = _environment_command(arguments, runtime=runtime, distribution=distribution)
     completed = subprocess.run(command, check=False, capture_output=True, text=True)
     if completed.returncode != 0:
         raise BackPaSError(completed.stderr.strip() or completed.stdout.strip())
@@ -266,7 +274,10 @@ def train_backpas(
     threads: int = 4,
     resume: bool = False,
     distribution: str = "Ubuntu",
+    runtime: str | None = None,
+    use_cuda: bool = False,
 ) -> dict[str, Any]:
+    runtime = runtime or default_runtime()
     root = Path(dataset_dir).resolve()
     work = Path(work_dir).resolve()
     ensure_free_space(root)
@@ -277,34 +288,37 @@ def train_backpas(
         if not required.exists():
             raise BackPaSError(f"Required baseline input is missing: {required}")
 
+    runner_runtime = _runtime_path(runner, runtime=runtime, distribution=distribution)
+    trainer_runtime = _runtime_path(backpas_train, runtime=runtime, distribution=distribution)
+    graph_runtime = _runtime_path(graph_dir, runtime=runtime, distribution=distribution)
+    work_runtime = _runtime_path(work, runtime=runtime, distribution=distribution)
     arguments = (
-        f"python {shell_quote(windows_to_wsl(runner, distribution=distribution))} "
-        f"--script {shell_quote(windows_to_wsl(backpas_train, distribution=distribution))} "
+        f"python {shell_quote(runner_runtime)} "
+        f"--script {shell_quote(trainer_runtime)} "
         f"--seed {seed} --threads {threads} -- "
-        f"--ml_dataset_path {shell_quote(windows_to_wsl(graph_dir, distribution=distribution))} "
-        f"--dataset_wkdir_path {shell_quote(windows_to_wsl(work, distribution=distribution))} "
+        f"--ml_dataset_path {shell_quote(graph_runtime)} "
+        f"--dataset_wkdir_path {shell_quote(work_runtime)} "
         f"--graph_type literals --layer_type GTR --num_layers 8 --epochs {epochs} "
         "--learning_rate 0.001 --batch_size 32 --batch_accumulation_size 32"
     )
     if resume:
         arguments += " --continue_training_from_last_epoch"
-    command = [
-        "wsl",
-        "--distribution",
-        distribution,
-        "--",
-        "bash",
-        "-lc",
-        _micromamba_command(arguments),
-    ]
+    if use_cuda:
+        arguments += " --use_cuda"
+    command = _environment_command(arguments, runtime=runtime, distribution=distribution)
     started = datetime.now(UTC).isoformat()
-    completed = subprocess.run(command, check=False, capture_output=True, text=True)
-    (work / "training-process.log").write_text(
-        completed.stdout + ("\nSTDERR\n" + completed.stderr if completed.stderr else ""),
-        encoding="utf-8",
-    )
+    process_log = work / "training-process.log"
+    with process_log.open("a" if resume else "w", encoding="utf-8", newline="\n") as stream:
+        completed = subprocess.run(
+            command,
+            check=False,
+            stdout=stream,
+            stderr=subprocess.STDOUT,
+            text=True,
+        )
     if completed.returncode != 0:
-        raise BackPaSError(completed.stderr.strip() or completed.stdout[-2000:])
+        detail = _tail_text(process_log, maximum_characters=4000)
+        raise BackPaSError(f"BackPaS training failed; see {process_log}\n{detail}")
     return collect_training_results(
         root,
         work,
@@ -312,6 +326,8 @@ def train_backpas(
         epochs=epochs,
         threads=threads,
         started=started,
+        runtime=runtime,
+        device="cuda" if use_cuda else "cpu",
     )
 
 
@@ -323,6 +339,8 @@ def collect_training_results(
     epochs: int,
     threads: int,
     started: str,
+    runtime: str = "unknown",
+    device: str = "cpu",
 ) -> dict[str, Any]:
     nested = work_dir / "ml_training/graph_with_literals_8_GTR"
     source_log = nested / "training_log.csv"
@@ -382,6 +400,8 @@ def collect_training_results(
         "seed": seed,
         "epochs": epochs,
         "cpu_threads": threads,
+        "runtime": runtime,
+        "device": device,
         "configuration": {
             "graph_type": "literals",
             "layer_type": "GTR",
@@ -417,6 +437,27 @@ def _micromamba_command(command: str) -> str:
     )
 
 
+def _runtime_path(path: Path, *, runtime: str, distribution: str) -> str:
+    if runtime == "wsl":
+        return windows_to_wsl(path, distribution=distribution)
+    if runtime == "native":
+        return path.resolve().as_posix()
+    raise BackPaSError(f"Unsupported runtime: {runtime}")
+
+
+def _runtime_command(arguments: list[str], *, runtime: str, distribution: str) -> list[str]:
+    if runtime == "wsl":
+        return ["wsl", "--distribution", distribution, "--", *arguments]
+    if runtime == "native":
+        return arguments
+    raise BackPaSError(f"Unsupported runtime: {runtime}")
+
+
+def _environment_command(command: str, *, runtime: str, distribution: str) -> list[str]:
+    shell_command = ["bash", "-lc", _micromamba_command(command)]
+    return _runtime_command(shell_command, runtime=runtime, distribution=distribution)
+
+
 def shell_quote(value: str) -> str:
     return "'" + value.replace("'", "'\"'\"'") + "'"
 
@@ -427,6 +468,14 @@ def _write_json(path: Path, payload: dict[str, Any]) -> None:
         encoding="utf-8",
         newline="\n",
     )
+
+
+def _tail_text(path: Path, *, maximum_characters: int) -> str:
+    with path.open("rb") as stream:
+        stream.seek(0, os.SEEK_END)
+        size = stream.tell()
+        stream.seek(max(0, size - maximum_characters))
+        return stream.read().decode("utf-8", errors="replace")
 
 
 def _git_commit(path: Path) -> str | None:

@@ -16,6 +16,7 @@ from backbone_pbo.dataset.audit import (
 )
 from backbone_pbo.dataset.backpas import (
     BackPaSError,
+    default_runtime,
     extract_backbones,
     prepare_backpas,
     train_backpas,
@@ -86,6 +87,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     extract_parser.add_argument("--threads", type=int, default=4)
     extract_parser.add_argument("--distribution", default="Ubuntu")
+    extract_parser.add_argument("--runtime", choices=["wsl", "native"], default=default_runtime())
     extract_parser.add_argument("--binary", type=Path)
     extract_parser.add_argument(
         "--smoke", action="store_true", help="extract only 8 train and 2 validation instances"
@@ -101,13 +103,14 @@ def build_parser() -> argparse.ArgumentParser:
         "--graph-type", choices=["literals", "variables"], default="literals"
     )
     prepare_parser.add_argument("--distribution", default="Ubuntu")
+    prepare_parser.add_argument("--runtime", choices=["wsl", "native"], default=default_runtime())
     prepare_parser.add_argument(
         "--smoke", action="store_true", help="select only 8 train and 2 validation instances"
     )
     prepare_parser.set_defaults(handler=_prepare_backpas)
 
     train_parser = subparsers.add_parser(
-        "train-backpas", help="run the seeded upstream BackPaS trainer under WSL"
+        "train-backpas", help="run the seeded upstream BackPaS trainer"
     )
     train_parser.add_argument("dataset", type=Path)
     train_parser.add_argument("--work-dir", type=Path, required=True)
@@ -115,6 +118,8 @@ def build_parser() -> argparse.ArgumentParser:
     train_parser.add_argument("--seed", type=int, default=0)
     train_parser.add_argument("--threads", type=int, default=4)
     train_parser.add_argument("--distribution", default="Ubuntu")
+    train_parser.add_argument("--runtime", choices=["wsl", "native"], default=default_runtime())
+    train_parser.add_argument("--cuda", action="store_true", help="train on a CUDA GPU")
     train_parser.add_argument("--resume", action="store_true")
     train_parser.set_defaults(handler=_train_backpas)
     return parser
@@ -205,6 +210,7 @@ def _extract_backbones(args: argparse.Namespace) -> int:
         partitions=tuple(args.partitions),
         threads=args.threads,
         distribution=args.distribution,
+        runtime=args.runtime,
         binary_path=args.binary,
         limits=limits,
     )
@@ -219,6 +225,7 @@ def _prepare_backpas(args: argparse.Namespace) -> int:
         args.work_dir,
         graph_type=args.graph_type,
         distribution=args.distribution,
+        runtime=args.runtime,
         limits=limits,
     )
     print(json.dumps(payload, indent=2, sort_keys=True))
@@ -234,6 +241,8 @@ def _train_backpas(args: argparse.Namespace) -> int:
         threads=args.threads,
         resume=args.resume,
         distribution=args.distribution,
+        runtime=args.runtime,
+        use_cuda=args.cuda,
     )
     print(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True))
     return 0

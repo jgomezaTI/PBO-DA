@@ -33,3 +33,29 @@ def test_windows_to_wsl_uses_portable_slashes(monkeypatch, repo_tmp_path):
 
     assert backpas.windows_to_wsl(repo_tmp_path) == "/mnt/c/project"
     assert "\\" not in captured[-1]
+
+
+def test_native_runtime_uses_resolved_linux_path(repo_tmp_path):
+    path = repo_tmp_path / "dataset"
+
+    assert backpas._runtime_path(path, runtime="native", distribution="ignored") == (
+        path.resolve().as_posix()
+    )
+
+
+def test_native_environment_runs_micromamba_without_wsl():
+    command = backpas._environment_command(
+        "python train.py --use_cuda", runtime="native", distribution="ignored"
+    )
+
+    assert command[:2] == ["bash", "-lc"]
+    assert "micromamba" in command[2]
+    assert "--use_cuda" in command[2]
+    assert "wsl" not in command
+
+
+def test_default_runtime_matches_host(monkeypatch):
+    monkeypatch.setattr(backpas.platform, "system", lambda: "Linux")
+    assert backpas.default_runtime() == "native"
+    monkeypatch.setattr(backpas.platform, "system", lambda: "Windows")
+    assert backpas.default_runtime() == "wsl"

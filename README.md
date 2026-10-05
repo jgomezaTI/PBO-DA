@@ -172,6 +172,12 @@ MVC-specific paths in the orchestration code:
 It continues from the next fully completed epoch; an interrupted partial epoch is
 recomputed.
 
+For a native Linux GPU server, the repository includes setup, data-transfer,
+preflight, detached execution, status, and resume scripts. Follow
+[`docs/gpu_server_runbook.md`](docs/gpu_server_runbook.md) before reserving the
+machine. The native runner enables BackPaS's `--use_cuda` flag explicitly and keeps
+the historical upstream environment separate from the project orchestrator.
+
 Fixtures that write files use `.tmp/pytest-local/` inside the repository. This
 directory is ignored by Git, so tests do not depend on the global Windows temporary
 directory.
