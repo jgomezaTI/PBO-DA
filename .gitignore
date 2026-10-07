@@ -9,6 +9,7 @@ htmlcov/
 .venv/
 .runtime/
 .tmp/
+tmp/
 /.context
 dist/
 build/
