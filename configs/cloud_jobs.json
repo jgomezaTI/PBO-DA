@@ -10,8 +10,13 @@
   },
   "jobs": [
     {"problem": "MVC", "technique": "baseline", "seed": 0, "dataset": "data/backpas/MVC"},
-    {"problem": "MVC", "technique": "polarity", "seed": 0, "dataset": "data/backpas/MVC-polarity-run"},
+    {"problem": "MVC", "technique": "polarity", "seed": 0, "dataset": "data/backpas/MVC-polarity-run-v2"},
+    {"problem": "MVC", "technique": "permutation", "seed": 0, "dataset": "data/backpas/MVC-permutation-run-v1"},
     {"problem": "MIS", "technique": "baseline", "seed": 0, "dataset": "data/backpas/MIS"},
-    {"problem": "CA", "technique": "baseline", "seed": 0, "dataset": "data/backpas/CA"}
+    {"problem": "MIS", "technique": "polarity", "seed": 0, "dataset": "data/backpas/MIS-polarity-run-v2"},
+    {"problem": "MIS", "technique": "permutation", "seed": 0, "dataset": "data/backpas/MIS-permutation-run-v1"},
+    {"problem": "CA", "technique": "baseline", "seed": 0, "dataset": "data/backpas/CA"},
+    {"problem": "CA", "technique": "polarity", "seed": 0, "dataset": "data/backpas/CA-polarity-run-v2"},
+    {"problem": "CA", "technique": "permutation", "seed": 0, "dataset": "data/backpas/CA-permutation-run-v1"}
   ]
 }
