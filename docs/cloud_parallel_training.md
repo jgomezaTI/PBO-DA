@@ -32,3 +32,21 @@ python scripts/cloud_run.py --job MVC/baseline/seed-0 --drive-root /content/driv
 python scripts/cloud_run.py --job MVC/baseline/seed-0 --drive-root /content/drive/MyDrive/PBO-Tesis --resume
 python scripts/cloud_run.py --job MVC/polarity/seed-0 --drive-root /content/drive/MyDrive/PBO-Tesis --dry-run
 ```
+
+## Lanzamiento simultáneo
+
+Las técnicas materializadas en la matriz pueden ejecutarse en paralelo con
+`scripts/run_parallel_jobs.py`. Cada trabajo conserva su propio directorio de
+checkpoints y `--resume` permanece activo por defecto:
+
+```bash
+python scripts/run_parallel_jobs.py \
+  MVC/polarity/seed-0 MVC/permutation/seed-0 \
+  MIS/polarity/seed-0 MIS/permutation/seed-0 \
+  CA/polarity/seed-0 CA/permutation/seed-0 \
+  --drive-root /content/drive/MyDrive/PBO-Tesis
+```
+
+En Colab se recomienda abrir una sesión por trabajo para evitar contención de
+GPU. Los `baseline` no forman parte de este lanzamiento porque ya están
+entrenados.
