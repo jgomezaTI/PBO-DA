@@ -200,6 +200,8 @@ The repository boundaries and upstream integration are documented in
 The ordered dataset, testing, training, and reporting plan is maintained in
 [`docs/roadmap.md`](docs/roadmap.md).
 
+The product requirements are maintained in [`docs/PRD.md`](docs/PRD.md).
+
 ## Repository structure
 
 ```text

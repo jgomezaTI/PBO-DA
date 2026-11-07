@@ -54,8 +54,8 @@ def loads_backbone(
 ) -> dict[str, BackboneLabel]:
     """Read a GuroBack backbone and fill non-backbone variables with ``NB``.
 
-    BackPaS uses ``b xN`` lines for B1, ``b -xN`` lines for B0, and a final ``b 0``
-    line as the complete-extraction marker.
+    BackPaS uses ``b xN`` lines for B1, ``b -xN`` lines for B0, optional ``nb xN``
+    lines for NB, and a final ``b 0`` line as the complete-extraction marker.
     """
 
     labels = {name: BackboneLabel.NB for name in variables}
@@ -63,9 +63,17 @@ def loads_backbone(
     lines = [line.strip() for line in content.splitlines() if line.strip()]
     for line_number, line in enumerate(lines, start=1):
         parts = line.split()
-        if len(parts) != 2 or parts[0] != "b":
+        if len(parts) != 2 or parts[0] not in {"b", "nb"}:
             raise BackboneFormatError(f"Invalid line {line_number}: {line!r}")
         token = parts[1]
+        if parts[0] == "nb":
+            if token.startswith("-") or token == "0":
+                raise BackboneFormatError(f"Invalid NB label at line {line_number}: {line!r}")
+            variable = token
+            if variable not in labels:
+                raise BackboneFormatError(f"Variable {variable!r} does not belong to the instance")
+            labels[variable] = BackboneLabel.NB
+            continue
         if token == "0":
             if line_number != len(lines):
                 raise BackboneFormatError("The 'b 0' marker must be the last line")

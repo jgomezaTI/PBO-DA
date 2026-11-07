@@ -51,6 +51,16 @@ def test_read_backpas_backbone_format():
     }
 
 
+def test_read_backpas_backbone_accepts_explicit_nb_labels():
+    labels = loads_backbone("nb x1\nb -x2\nb x3\nb 0\n", ["x1", "x2", "x3"])
+
+    assert labels == {
+        "x1": BackboneLabel.NB,
+        "x2": BackboneLabel.B0,
+        "x3": BackboneLabel.B1,
+    }
+
+
 def test_backbone_round_trip():
     labels = {"x1": BackboneLabel.B0, "x2": BackboneLabel.B1, "x3": BackboneLabel.NB}
 

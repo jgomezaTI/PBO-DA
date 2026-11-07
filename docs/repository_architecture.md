@@ -61,3 +61,21 @@ the unpublished BackPaS experiment directory. Matching published dimensions are
 evidence of compatibility, not proof of bit-for-bit identity. Comparisons must also
 distinguish the public repository environment (PyTorch 1.10.2/PyG 2.0.4) from the
 newer GPU environment reported in the final thesis (PyTorch 2.7.1/PyG 2.6.1).
+
+## Stable identifiers and artifact paths
+
+Every experiment uses the identifier `family/scenario/seed-N`, where `family` is the
+uppercase benchmark name (`MVC`, `MIS`, or `CA`), `scenario` is `baseline`, `polarity`,
+or another explicitly approved treatment, and `N` is the integer random seed. For
+example, `MVC/polarity/seed-0` identifies seed 0 of the MVC polarity treatment.
+
+The identifier maps deterministically to `results/<FAMILY>/<scenario>/seed-<N>/`.
+Dataset manifests and audits use `configs/datasets/<family-lower>.yaml` and
+`results/audits/<FAMILY>-provenance.json`. Cross-run comparisons are stored under
+`results/<FAMILY>/comparison/seed-<N>/`. Generated thesis fragments live in
+`thesis/generated/` and must reference the stable experiment identifiers that produced
+their values.
+
+Local datasets, manifests, status files, checkpoints, and generated reports remain
+outside Git. Their paths are nevertheless stable so they can be regenerated from the
+tracked source, configurations, or documented acquisition procedure.

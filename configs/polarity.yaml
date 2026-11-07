@@ -1,10 +1,12 @@
 experiment:
   name: polarity_global
-  status: blocked_until_dataset_and_training_config_are_available
+  status: planned_pending_augmented_dataset
 
-seed: 42
+seed: 0
 
 dataset:
+  problem: MVC
+  source_manifest: results/MVC/baseline/seed-0/partitions.json
   manifest: null
   augment_train_only: true
 
@@ -14,6 +16,13 @@ augmentation:
   include_original_instances: true
 
 training:
-  implementation: null
-  config_source: null
+  implementation: external/backpas/src/3_train.py
+  representation: graph_with_literals
+  layer: GTR
+  layers: 8
+  epochs: 200
+  learning_rate: 0.001
+  batch_size: 32
+  batch_accumulation_size: 32
+  checkpoint_selection: minimum_validation_loss
 

@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "repository": "backbone-pbo",
+  "defaults": {
+    "epochs": 200,
+    "threads": 2,
+    "batch_size": 8,
+    "batch_accumulation_size": 32,
+    "cuda": true
+  },
+  "jobs": [
+    {"problem": "MVC", "technique": "baseline", "seed": 0, "dataset": "data/backpas/MVC"},
+    {"problem": "MVC", "technique": "polarity", "seed": 0, "dataset": "data/backpas/MVC-polarity-run"},
+    {"problem": "MIS", "technique": "baseline", "seed": 0, "dataset": "data/backpas/MIS"},
+    {"problem": "CA", "technique": "baseline", "seed": 0, "dataset": "data/backpas/CA"}
+  ]
+}

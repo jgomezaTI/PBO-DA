@@ -276,6 +276,8 @@ def train_backpas(
     distribution: str = "Ubuntu",
     runtime: str | None = None,
     use_cuda: bool = False,
+    batch_size: int = 8,
+    batch_accumulation_size: int = 32,
 ) -> dict[str, Any]:
     runtime = runtime or default_runtime()
     root = Path(dataset_dir).resolve()
@@ -299,7 +301,8 @@ def train_backpas(
         f"--ml_dataset_path {shell_quote(graph_runtime)} "
         f"--dataset_wkdir_path {shell_quote(work_runtime)} "
         f"--graph_type literals --layer_type GTR --num_layers 8 --epochs {epochs} "
-        "--learning_rate 0.001 --batch_size 32 --batch_accumulation_size 32"
+        f"--learning_rate 0.001 --batch_size {batch_size} "
+        f"--batch_accumulation_size {batch_accumulation_size}"
     )
     if resume:
         arguments += " --continue_training_from_last_epoch"
@@ -328,6 +331,8 @@ def train_backpas(
         started=started,
         runtime=runtime,
         device="cuda" if use_cuda else "cpu",
+        batch_size=batch_size,
+        batch_accumulation_size=batch_accumulation_size,
     )
 
 
@@ -341,6 +346,8 @@ def collect_training_results(
     started: str,
     runtime: str = "unknown",
     device: str = "cpu",
+    batch_size: int = 8,
+    batch_accumulation_size: int = 32,
 ) -> dict[str, Any]:
     nested = work_dir / "ml_training/graph_with_literals_8_GTR"
     source_log = nested / "training_log.csv"
@@ -407,8 +414,8 @@ def collect_training_results(
             "layer_type": "GTR",
             "num_layers": 8,
             "learning_rate": 0.001,
-            "batch_size": 32,
-            "batch_accumulation_size": 32,
+            "batch_size": batch_size,
+            "batch_accumulation_size": batch_accumulation_size,
             "literal_messages": False,
         },
         "upstream_commits": {

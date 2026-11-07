@@ -1,5 +1,18 @@
 # Experimental roadmap
 
+## Active thesis-workplan initiative
+
+The local Spec Kit initiative `001-thesis-workplan` coordinates five independently
+verifiable increments: literature grounding (US1), dataset and methodology traceability
+(US2), the controlled baseline/polarity comparison (US3), reproducible reporting (US4),
+and thesis synchronization (US5). Its execution order is setup → shared contracts → US1
+and US2 → US3 → US4 → US5 → final quality gates.
+
+As of 2026-10-20, the MVC baseline is still active and must not be interrupted. The
+implementation may advance documentation and deterministic tests while training runs;
+dataset generation and full polarity training remain gated by provenance, mathematical
+correctness, smoke testing, and configuration comparability.
+
 ## Objective
 
 Build a reproducible evaluation of data augmentation for backbone prediction using
@@ -287,9 +300,12 @@ their explicit technique and parameter names.
 
 ## Immediate work queue
 
-1. Complete the 200-epoch MVC seed-0 baseline and collect its validation report.
-2. Record the environment and hardware deviation from the BackPaS thesis.
-3. Ask the supervisor about university cluster or GPU access before augmented runs.
-4. Freeze the successful baseline configuration and generate polarity-augmented
+1. Allow the active 200-epoch MVC seed-0 baseline to complete without interruption and
+   then collect its validation report.
+2. Implement the shared provenance and result contracts and their tests.
+3. Complete the literature protocol, comparison matrix, and state-of-the-art chapter.
+4. Record the effective environment and hardware deviation from the BackPaS thesis.
+5. Ask the supervisor about university cluster or GPU access before augmented runs.
+6. Freeze the successful baseline configuration and generate polarity-augmented
    training data without changing validation.
-5. Confirm the fourth benchmark and obtain the MIS and CA source artifacts.
+7. Confirm the fourth benchmark and obtain the MIS and CA source artifacts.

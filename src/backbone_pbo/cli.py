@@ -22,8 +22,10 @@ from backbone_pbo.dataset.backpas import (
     train_backpas,
 )
 from backbone_pbo.dataset.dmiplib import DatasetFetchError, fetch_dmiplib_mvc
+from backbone_pbo.dataset.provenance import DatasetProvenance
 from backbone_pbo.io.opb import read_opb, write_opb
 from backbone_pbo.model import variable_sort_key
+from backbone_pbo.training.results import ExperimentRecord
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -117,11 +119,25 @@ def build_parser() -> argparse.ArgumentParser:
     train_parser.add_argument("--epochs", type=int, default=200)
     train_parser.add_argument("--seed", type=int, default=0)
     train_parser.add_argument("--threads", type=int, default=4)
+    train_parser.add_argument("--batch-size", type=int, default=8)
+    train_parser.add_argument("--batch-accumulation-size", type=int, default=32)
     train_parser.add_argument("--distribution", default="Ubuntu")
     train_parser.add_argument("--runtime", choices=["wsl", "native"], default=default_runtime())
     train_parser.add_argument("--cuda", action="store_true", help="train on a CUDA GPU")
     train_parser.add_argument("--resume", action="store_true")
     train_parser.set_defaults(handler=_train_backpas)
+
+    provenance_parser = subparsers.add_parser(
+        "validate-provenance", help="validate a JSON dataset provenance record"
+    )
+    provenance_parser.add_argument("record", type=Path)
+    provenance_parser.set_defaults(handler=_validate_provenance)
+
+    experiment_parser = subparsers.add_parser(
+        "validate-experiment", help="validate a JSON experiment identity record"
+    )
+    experiment_parser.add_argument("record", type=Path)
+    experiment_parser.set_defaults(handler=_validate_experiment)
     return parser
 
 
@@ -129,7 +145,14 @@ def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     try:
         return int(args.handler(args))
-    except (BackPaSError, DatasetAuditError, DatasetFetchError) as exc:
+    except (
+        BackPaSError,
+        DatasetAuditError,
+        DatasetFetchError,
+        OSError,
+        ValueError,
+        json.JSONDecodeError,
+    ) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 1
 
@@ -209,6 +232,8 @@ def _extract_backbones(args: argparse.Namespace) -> int:
         args.dataset,
         partitions=tuple(args.partitions),
         threads=args.threads,
+        batch_size=args.batch_size,
+        batch_accumulation_size=args.batch_accumulation_size,
         distribution=args.distribution,
         runtime=args.runtime,
         binary_path=args.binary,
@@ -239,12 +264,55 @@ def _train_backpas(args: argparse.Namespace) -> int:
         epochs=args.epochs,
         seed=args.seed,
         threads=args.threads,
+        batch_size=args.batch_size,
+        batch_accumulation_size=args.batch_accumulation_size,
         resume=args.resume,
         distribution=args.distribution,
         runtime=args.runtime,
         use_cuda=args.cuda,
     )
     print(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True))
+    return 0
+
+
+def _read_json_record(path: Path) -> dict[str, object]:
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(payload, dict):
+        raise ValueError(f"Record must be a JSON object: {path}")
+    return payload
+
+
+def _validate_provenance(args: argparse.Namespace) -> int:
+    record = DatasetProvenance.from_dict(_read_json_record(args.record))
+    print(
+        json.dumps(
+            {
+                "dataset_id": record.dataset_id,
+                "audit_status": record.audit["status"],
+                "valid": True,
+            },
+            ensure_ascii=False,
+            indent=2,
+            sort_keys=True,
+        )
+    )
+    return 0
+
+
+def _validate_experiment(args: argparse.Namespace) -> int:
+    record = ExperimentRecord.from_dict(_read_json_record(args.record))
+    print(
+        json.dumps(
+            {
+                "experiment_id": record.experiment_id,
+                "run_status": record.run_status,
+                "valid": True,
+            },
+            ensure_ascii=False,
+            indent=2,
+            sort_keys=True,
+        )
+    )
     return 0
 
 
