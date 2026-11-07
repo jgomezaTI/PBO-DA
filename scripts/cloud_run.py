@@ -51,6 +51,8 @@ def main() -> int:
     parser.add_argument("--threads", type=int)
     parser.add_argument("--cpu", action="store_true")
     parser.add_argument("--resume", action="store_true")
+    parser.add_argument("--allow-completed", action="store_true",
+                        help="Allow rerunning a job whose work directory already has final metrics")
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()
 
@@ -66,6 +68,12 @@ def main() -> int:
         work = args.drive_root / "runs" / job["problem"] / job["technique"] / f"seed-{job['seed']}"
         work.mkdir(parents=True, exist_ok=True)
     work.mkdir(parents=True, exist_ok=True)
+    completed_markers = (work / "metrics.json", work / "experiment-status.json")
+    if not args.allow_completed and any(marker.exists() for marker in completed_markers):
+        raise SystemExit(
+            f"Refusing to rerun completed job {args.job}; existing result found in {work}. "
+            "Use --allow-completed only for an intentional reproduction."
+        )
     status = work / "status.json"
     command = [sys.executable, "-m", "backbone_pbo.cli", "train-backpas", job["dataset"],
                "--work-dir", str(work), "--epochs", str(epochs), "--seed", str(job["seed"]),
