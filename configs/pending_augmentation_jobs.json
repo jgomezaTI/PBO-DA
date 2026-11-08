@@ -1,0 +1,133 @@
+{
+  "version": 1,
+  "repository": "backbone-pbo",
+  "defaults": {
+    "epochs": 65,
+    "threads": 4,
+    "batch_size": 32,
+    "batch_accumulation_size": 32,
+    "cuda": true
+  },
+  "jobs": [
+    {
+      "problem": "MVC",
+      "technique": "selective-polarity",
+      "seed": 0,
+      "dataset": "data/backpas/MVC-selective-polarity-v1",
+      "source_dataset": "data/backpas/MVC",
+      "augmentation_kind": "selective-polarity",
+      "replicas": 1,
+      "attempts": 20
+    },
+    {
+      "problem": "MVC",
+      "technique": "constraint-perturbation",
+      "seed": 0,
+      "dataset": "data/backpas/MVC-constraint-perturbation-v1",
+      "source_dataset": "data/backpas/MVC",
+      "augmentation_kind": "constraint",
+      "replicas": 1,
+      "attempts": 20
+    },
+    {
+      "problem": "MVC",
+      "technique": "objective-perturbation",
+      "seed": 0,
+      "dataset": "data/backpas/MVC-objective-perturbation-v1",
+      "source_dataset": "data/backpas/MVC",
+      "augmentation_kind": "objective",
+      "replicas": 1,
+      "attempts": 20
+    },
+    {
+      "problem": "MVC",
+      "technique": "synthetic-conditioned",
+      "seed": 0,
+      "dataset": "data/backpas/MVC-synthetic-conditioned-v1",
+      "source_dataset": "data/backpas/MVC",
+      "augmentation_kind": "synthetic",
+      "replicas": 1,
+      "attempts": 20
+    },
+    {
+      "problem": "MIS",
+      "technique": "selective-polarity",
+      "seed": 0,
+      "dataset": "data/backpas/MIS-selective-polarity-v1",
+      "source_dataset": "data/backpas/MIS",
+      "augmentation_kind": "selective-polarity",
+      "replicas": 1,
+      "attempts": 20
+    },
+    {
+      "problem": "MIS",
+      "technique": "constraint-perturbation",
+      "seed": 0,
+      "dataset": "data/backpas/MIS-constraint-perturbation-v1",
+      "source_dataset": "data/backpas/MIS",
+      "augmentation_kind": "constraint",
+      "replicas": 1,
+      "attempts": 20
+    },
+    {
+      "problem": "MIS",
+      "technique": "objective-perturbation",
+      "seed": 0,
+      "dataset": "data/backpas/MIS-objective-perturbation-v1",
+      "source_dataset": "data/backpas/MIS",
+      "augmentation_kind": "objective",
+      "replicas": 1,
+      "attempts": 20
+    },
+    {
+      "problem": "MIS",
+      "technique": "synthetic-conditioned",
+      "seed": 0,
+      "dataset": "data/backpas/MIS-synthetic-conditioned-v1",
+      "source_dataset": "data/backpas/MIS",
+      "augmentation_kind": "synthetic",
+      "replicas": 1,
+      "attempts": 20
+    },
+    {
+      "problem": "CA",
+      "technique": "selective-polarity",
+      "seed": 0,
+      "dataset": "data/backpas/CA-selective-polarity-v1",
+      "source_dataset": "data/backpas/CA",
+      "augmentation_kind": "selective-polarity",
+      "replicas": 1,
+      "attempts": 20
+    },
+    {
+      "problem": "CA",
+      "technique": "constraint-perturbation",
+      "seed": 0,
+      "dataset": "data/backpas/CA-constraint-perturbation-v1",
+      "source_dataset": "data/backpas/CA",
+      "augmentation_kind": "constraint",
+      "replicas": 1,
+      "attempts": 20
+    },
+    {
+      "problem": "CA",
+      "technique": "objective-perturbation",
+      "seed": 0,
+      "dataset": "data/backpas/CA-objective-perturbation-v1",
+      "source_dataset": "data/backpas/CA",
+      "augmentation_kind": "objective",
+      "replicas": 1,
+      "attempts": 20
+    },
+    {
+      "problem": "CA",
+      "technique": "synthetic-conditioned",
+      "seed": 0,
+      "dataset": "data/backpas/CA-synthetic-conditioned-v1",
+      "source_dataset": "data/backpas/CA",
+      "augmentation_kind": "synthetic",
+      "replicas": 1,
+      "attempts": 20
+    }
+  ]
+}

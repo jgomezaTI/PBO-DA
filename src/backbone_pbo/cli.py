@@ -89,7 +89,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     extract_parser.add_argument("--threads", type=int, default=4)
     extract_parser.add_argument("--distribution", default="Ubuntu")
-    extract_parser.add_argument("--runtime", choices=["wsl", "native"], default=default_runtime())
+    extract_parser.add_argument("--runtime", choices=["wsl", "native", "colab"], default=default_runtime())
     extract_parser.add_argument("--binary", type=Path)
     extract_parser.add_argument(
         "--smoke", action="store_true", help="extract only 8 train and 2 validation instances"
@@ -105,7 +105,7 @@ def build_parser() -> argparse.ArgumentParser:
         "--graph-type", choices=["literals", "variables"], default="literals"
     )
     prepare_parser.add_argument("--distribution", default="Ubuntu")
-    prepare_parser.add_argument("--runtime", choices=["wsl", "native"], default=default_runtime())
+    prepare_parser.add_argument("--runtime", choices=["wsl", "native", "colab"], default=default_runtime())
     prepare_parser.add_argument(
         "--smoke", action="store_true", help="select only 8 train and 2 validation instances"
     )
@@ -122,7 +122,7 @@ def build_parser() -> argparse.ArgumentParser:
     train_parser.add_argument("--batch-size", type=int, default=8)
     train_parser.add_argument("--batch-accumulation-size", type=int, default=32)
     train_parser.add_argument("--distribution", default="Ubuntu")
-    train_parser.add_argument("--runtime", choices=["wsl", "native"], default=default_runtime())
+    train_parser.add_argument("--runtime", choices=["wsl", "native", "colab"], default=default_runtime())
     train_parser.add_argument("--cuda", action="store_true", help="train on a CUDA GPU")
     train_parser.add_argument("--resume", action="store_true")
     train_parser.set_defaults(handler=_train_backpas)

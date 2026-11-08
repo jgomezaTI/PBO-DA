@@ -396,12 +396,17 @@ def collect_training_results(
         for name, values in zip(class_names, confusion, strict=True):
             writer.writerow([name, *values])
 
+    problem = next((name for name in ("MVC", "MIS", "CA")
+                    if dataset_dir.name == name or dataset_dir.name.startswith(f"{name}-")),
+                   dataset_dir.name)
+    technique = work_dir.parent.name
     manifest = {
         "schema_version": 1,
-        "status": "preliminary unaugmented validation baseline",
+        "status": "completed",
         "started_at": started,
         "completed_at": datetime.now(UTC).isoformat(),
-        "dataset": "MVC",
+        "dataset": problem,
+        "technique": technique,
         "dataset_path": dataset_dir.as_posix(),
         "partitions_sha256": sha256_file(dataset_dir / "partitions.json"),
         "seed": seed,
@@ -425,15 +430,15 @@ def collect_training_results(
     }
     _write_json(work_dir / "run-manifest.json", manifest)
     report = (
-        "# MVC preliminary baseline\n\n"
-        "This is an unaugmented validation baseline. It is not a completed thesis result.\n\n"
+        f"# {problem} {technique} training\n\n"
         f"- Selected epoch: {metrics['epoch']}\n"
         f"- Validation cross-entropy: {metrics['loss']:.8f}\n"
         f"- Validation accuracy: {metrics['accuracy']:.8f}\n"
         f"- Validation balanced accuracy: {metrics['balanced_accuracy']:.8f}\n"
         f"- Validation macro-F1: {metrics['macro_f1']:.8f}\n"
     )
-    (work_dir / "baseline-report.md").write_text(report, encoding="utf-8", newline="\n")
+    report_name = "baseline-report.md" if technique in {"baseline", "full"} else "experiment-report.md"
+    (work_dir / report_name).write_text(report, encoding="utf-8", newline="\n")
     return metrics
 
 
@@ -447,7 +452,7 @@ def _micromamba_command(command: str) -> str:
 def _runtime_path(path: Path, *, runtime: str, distribution: str) -> str:
     if runtime == "wsl":
         return windows_to_wsl(path, distribution=distribution)
-    if runtime == "native":
+    if runtime in {"native", "colab"}:
         return path.resolve().as_posix()
     raise BackPaSError(f"Unsupported runtime: {runtime}")
 
@@ -455,12 +460,14 @@ def _runtime_path(path: Path, *, runtime: str, distribution: str) -> str:
 def _runtime_command(arguments: list[str], *, runtime: str, distribution: str) -> list[str]:
     if runtime == "wsl":
         return ["wsl", "--distribution", distribution, "--", *arguments]
-    if runtime == "native":
+    if runtime in {"native", "colab"}:
         return arguments
     raise BackPaSError(f"Unsupported runtime: {runtime}")
 
 
 def _environment_command(command: str, *, runtime: str, distribution: str) -> list[str]:
+    if runtime == "colab":
+        return ["bash", "-lc", command]
     shell_command = ["bash", "-lc", _micromamba_command(command)]
     return _runtime_command(shell_command, runtime=runtime, distribution=distribution)
 

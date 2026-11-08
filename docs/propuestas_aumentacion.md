@@ -1,7 +1,8 @@
 # Propuestas de aumentación de datos
 
-Estas son líneas de experimentación posteriores a la primera prueba de
-inversión global de polaridad. Son propuestas, no resultados obtenidos.
+Estas técnicas están definidas operacionalmente para generar tratamientos
+reproducibles. No se consideran resultados experimentales hasta entrenar y
+comparar cada tratamiento con sus métricas.
 
 ## 1. Inversión de polaridad selectiva
 
@@ -17,18 +18,20 @@ en `train`, transformar sus etiquetas y comparar contra la inversión global.
 **Justificación** = Cambios pequeños en restricciones pueden producir instancias
 con varias soluciones óptimas y aumentar la presencia de variables `NB`.
 
-**Qué hacer** = Definir perturbaciones acotadas, verificar factibilidad y
-optimalidad con el solver exacto, recalcular el backbone y medir la distribución
-de `NB`.
+**Definición ejecutable** = Para cada instancia de `train`, elegir con semilla
+una restricción y cambiar su RHS en `-1` o `+1`. Rechazar instancias infactibles,
+conservar solo cambios distintos del original y recalcular el backbone con el
+solver exacto. Validación y test se copian sin modificación.
 
 ## 3. Perturbación controlada de la función objetivo
 
 **Justificación** = Modificar de forma acotada los coeficientes puede generar
 instancias cercanas con distinta estructura de soluciones óptimas.
 
-**Qué hacer** = Establecer un rango de perturbación, generar nuevas instancias,
-recalcular sus backbones y descartar cambios que no cumplan el criterio
-experimental definido.
+**Definición ejecutable** = Para cada instancia de `train`, elegir con semilla
+un coeficiente objetivo no nulo y cambiarlo en `-1` o `+1`. Rechazar objetivos
+vacíos, instancias inviables y cambios idénticos; recalcular etiquetas óptimas
+exactas. Validación y test se copian sin modificación.
 
 ## 4. Aumentación por simetrías
 
@@ -43,13 +46,24 @@ comprobar que la predicción sea invariante ante dichas permutaciones.
 **Justificación** = Permite construir instancias con tamaños, familias y
 distribuciones objetivo de `B0`, `B1` y `NB`.
 
-**Qué hacer** = Definir parámetros de generación, resolver cada instancia con
-el solver exacto, conservar solo las instancias válidas y estratificar las
-particiones sin leakage.
+**Definición ejecutable** = Generar candidatos cercanos a cada instancia de
+`train` mediante una perturbación acotada de RHS y otra de coeficiente objetivo.
+Resolver cada candidato exactamente, recalcular su backbone y conservarlo solo
+si es factible y distinto de su origen. El número de candidatos por instancia es
+configurable; no se leen instancias de validación/test como fuentes. Las
+particiones originales se mantienen intactas.
+
+La implementación vive en `scripts/materialize_perturbation.py`; el comando
+`scripts/materialize_pending_augmentations.py` genera una matriz de doce trabajos
+(cuatro técnicas pendientes por MVC, MIS y CA) sin crear datasets ni ejecutar
+entrenamientos localmente. Cada sesión Colab crea y valida solo el dataset que
+le corresponde antes de entrenar. La inversión selectiva invierte
+determinísticamente la mitad de las variables de cada instancia de train.
 
 ## Orden sugerido de evaluación
 
-Probar primero cada técnica por separado con el mismo baseline y las mismas
-semillas. Después comparar solo las dos mejores combinaciones. Las pérdidas
+Probar las técnicas en trabajos independientes y simultáneos, con la misma
+semilla experimental por problema. Los tratamientos ya ejecutados localmente
+no deben relanzarse. Las pérdidas
 ponderadas y `Focal Loss` deben tratarse como estrategias de entrenamiento
 complementarias, no como aumentaciones de datos.

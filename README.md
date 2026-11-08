@@ -178,6 +178,31 @@ preflight, detached execution, status, and resume scripts. Follow
 machine. The native runner enables BackPaS's `--use_cuda` flag explicitly and keeps
 the historical upstream environment separate from the project orchestrator.
 
+## Gurobi WLS Compute Server in Colab
+
+License `2870120` is a WLS Compute Server license. The prepared Colab cell hosts
+Gurobi Remote Services in the ephemeral runtime and connects a Gurobi client to it.
+This makes Gurobi available to Colab, but installing `gurobipy` alone does not run
+GuroBack or label the thesis data.
+
+Before running dataset labeling in Colab:
+
+1. Download/create the WLS API key for license `2870120` in the Gurobi License
+   Manager. The key contains `LICENSEID`, `WLSACCESSID`, and `WLSSECRET`.
+2. Add its contents to that notebook's Colab **Secrets** as
+   `GUROBI_WLS_LICENSE` and enable notebook access. Keep it out of notebook cells,
+   Drive files, and Git.
+3. Run the setup cell. It starts `grb_rs` and solves a small optimization through
+   the Compute Server. This verifies connectivity, not dataset labeling.
+4. Compile and invoke this repository's GuroBack against the intended raw
+   instances; audit the resulting `.backbone` files before training.
+
+Status (2026-11-07): the Colab setup cell is prepared, but its latest execution
+stops with `SecretNotFoundError` because `GUROBI_WLS_LICENSE` is absent. No active
+Compute Server connection, Gurobi solve, or Colab GuroBack label extraction has
+been verified. The local WSL license is separate and must not be copied into the
+notebook or repository as a substitute for the WLS API key.
+
 Fixtures that write files use `.tmp/pytest-local/` inside the repository. This
 directory is ignored by Git, so tests do not depend on the global Windows temporary
 directory.

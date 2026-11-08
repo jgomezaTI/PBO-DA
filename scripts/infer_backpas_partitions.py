@@ -13,9 +13,9 @@ from pathlib import Path
 
 
 def partition_for(name: str) -> str | None:
-    if re.match(r"^(?:train|valid)(?:_|\.)", name):
+    if re.match(r"^(?:train|valid|test)(?:_|\.)", name):
         return name.split("_", 1)[0]
-    if re.match(r"^backpas_(?:train|valid)_", name):
+    if re.match(r"^backpas_(?:train|valid|test)_", name):
         return name.split("_", 2)[1]
     return None
 

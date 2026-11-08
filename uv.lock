@@ -181,6 +181,11 @@ version = "0.1.0"
 source = { editable = "." }
 
 [package.optional-dependencies]
+backpas = [
+    { name = "pandas" },
+    { name = "pyscipopt" },
+    { name = "torcheval" },
+]
 data = [
     { name = "datasets" },
     { name = "huggingface-hub" },
@@ -196,6 +201,8 @@ ml = [
     { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
     { name = "numpy", version = "2.5.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
     { name = "scikit-learn" },
+    { name = "scipy", version = "1.17.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
+    { name = "scipy", version = "1.18.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
     { name = "torch" },
     { name = "torch-geometric" },
 ]
@@ -206,15 +213,19 @@ requires-dist = [
     { name = "huggingface-hub", marker = "extra == 'data'", specifier = ">=0.34,<2" },
     { name = "hypothesis", marker = "extra == 'dev'", specifier = ">=6.130" },
     { name = "numpy", marker = "extra == 'ml'", specifier = ">=2.1" },
+    { name = "pandas", marker = "extra == 'backpas'", specifier = ">=2.2" },
+    { name = "pyscipopt", marker = "extra == 'backpas'", specifier = ">=6.0" },
     { name = "pyscipopt", marker = "extra == 'data'", specifier = "==6.2.1" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.3" },
     { name = "pytest-cov", marker = "extra == 'dev'", specifier = ">=6.0" },
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.11" },
     { name = "scikit-learn", marker = "extra == 'ml'", specifier = ">=1.6" },
+    { name = "scipy", marker = "extra == 'ml'", specifier = ">=1.14" },
     { name = "torch", marker = "extra == 'ml'", specifier = ">=2.7" },
     { name = "torch-geometric", marker = "extra == 'ml'", specifier = ">=2.6" },
+    { name = "torcheval", marker = "extra == 'backpas'", specifier = ">=0.0.7" },
 ]
-provides-extras = ["data", "ml", "dev"]
+provides-extras = ["data", "ml", "backpas", "dev"]
 
 [[package]]
 name = "certifi"
@@ -2442,6 +2453,18 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/40/2c/bfcb404c448f7c347cea7b956d3c7e92d53e36c8db2010eb1bdc1b937bfb/torch_geometric-2.8.0.post1.tar.gz", hash = "sha256:2c0c81666ec10f2132f6b4e0b6c57fc813f2c9f6b57599d7b7a799c614c22fbd", size = 928666, upload-time = "2026-07-20T20:44:40.36Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/14/5c/edf74a71249ad19aa0390fb97ff021e2a5b04ce23252730014e1feac957e/torch_geometric-2.8.0.post1-py3-none-any.whl", hash = "sha256:5d9841cbfa64eadc425e445767127d103dd52fdc5890548c6364986c9bc78029", size = 1325397, upload-time = "2026-07-20T20:44:38.789Z" },
+]
+
+[[package]]
+name = "torcheval"
+version = "0.0.7"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "typing-extensions" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/f2/65/8f895a132d385c3bc60023a45501637aff63b98629cf45ce47a2035c0cc3/torcheval-0.0.7.tar.gz", hash = "sha256:a498dec34137bc66c9cf1adc7353a46c604dd62255884c72dcb4e2e4fc2cd7e9", size = 100912, upload-time = "2023-08-24T22:12:44.683Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/e4/de/e7abc784b00de9d05999657d29187f1f7a3406ed10ecaf164de06482608f/torcheval-0.0.7-py3-none-any.whl", hash = "sha256:20cc34dac7aa9b32f942c8a9f014d1d02098631b6cd0b102c078600577017956", size = 179200, upload-time = "2023-08-24T22:12:42.874Z" },
 ]
 
 [[package]]

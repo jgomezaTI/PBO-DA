@@ -1,0 +1,33 @@
+{
+  "report_type": "comparative-validation",
+  "selection": "minimum validation cross-entropy",
+  "validation_only": true,
+  "class_order": [
+    "B0",
+    "B1",
+    "NB"
+  ],
+  "experiments": [
+    {
+      "experiment": "MVC",
+      "scenario": "polarity",
+      "seed": 0,
+      "dataset": "data/backpas/MVC-polarity-run",
+      "work_dir": "results/MVC/polarity/seed-0"
+    },
+    {
+      "experiment": "MIS",
+      "scenario": "baseline",
+      "seed": 0,
+      "dataset": "data/backpas/MIS",
+      "work_dir": "results/MIS/full/seed-0"
+    },
+    {
+      "experiment": "CA",
+      "scenario": "baseline",
+      "seed": 0,
+      "dataset": "data/backpas/CA",
+      "work_dir": "results/CA/full/seed-0"
+    }
+  ]
+}

@@ -20,9 +20,15 @@ data = [
 ]
 ml = [
   "numpy>=2.1",
+  "scipy>=1.14",
   "scikit-learn>=1.6",
   "torch>=2.7",
   "torch-geometric>=2.6",
+]
+backpas = [
+  "pandas>=2.2",
+  "pyscipopt>=6.0",
+  "torcheval>=0.0.7",
 ]
 dev = [
   "hypothesis>=6.130",
