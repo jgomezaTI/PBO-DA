@@ -243,6 +243,108 @@ runtime overhead.
 - Prediction improvements are not presented as solver improvements unless the
   end-to-end measurements support that conclusion.
 
+### Supervisor decision - label generation protocol (pending)
+
+**Question for the supervisor:** Should the thesis use GuroBack as the single
+procedure for generating ground-truth backbone labels for the original datasets,
+and for any augmented instances that require new labels, instead of mixing it
+with the repository's direct solver-based labeler?
+
+Options to discuss:
+
+1. **Unify on GuroBack:** use it for original instances and every transformed
+   instance that needs fresh labels. Algebraically valid transformations (for
+   example, polarity inversion) may derive labels from their source labels. First
+   confirm GuroBack supports each instance format and that its extraction protocol
+   matches the thesis definition.
+2. **Keep both procedures:** permit the direct solver implementation for formats
+   or transformations not supported by GuroBack, but require a documented
+   equivalence check and record the labeler/version for every dataset.
+
+GuroBack itself uses Gurobi internally, so either option still needs the solver
+and a valid license when labels are generated. No datasets are to be relabeled and
+no past checkpoints are to be replaced until this decision is confirmed. After the
+decision, update the protocol, audit label provenance for MVC/MIS/CA, and establish
+whether existing baselines remain comparable or need to be rerun.
+
+### Local training reuse and partition completion (current recommendation)
+
+Do not restart all experiments. Preserve datasets, logs, metrics, and checkpoints.
+First determine whether an existing model was trained on the complete official
+partitions. Adding missing instances to a dataset folder does not update a trained
+model: if instances are added to `train`, that benchmark's training must resume or
+be rerun on the completed partition before it represents the complete dataset.
+Validation and test membership must remain fixed and must never be moved to train.
+
+Current local evidence:
+
+- **MVC:** the local `MVC-easy` reconstruction has 800 train and 100 validation
+  instances, 900 complete GuroBack-format labels, and a passing audit. Its baseline
+  manifest records this dataset and the pinned GuroBack revision. Keep this baseline.
+- **MIS:** the current source partition and the saved `full` training partition
+  agree exactly at 761 train and 97 validation. This is not a case of missing files
+  relative to the local source: that source itself does not contain the target
+  800/100. The local audit reports 1,500 instances but rejects all 1,500 backbone
+  files because their `nb x...` lines do not match the expected canonical format.
+  Therefore, do not invent a train/validation difference or add files from another
+  split. To reach the thesis target, obtain/restore the intended 800/100 MIS source,
+  label and audit the full partitions, then train MIS on that dataset. Existing MIS
+  runs remain historical results for their recorded 761/97 set.
+- **CA:** the saved `full` training partition has 788 train and 100 validation;
+  the current source manifest has 800/100. The exact 12 missing training instance
+  names are present locally with corresponding backbone files. A previous GuroBack
+  audit reports all 900 target labels complete, although that audit also flags 300
+  extra unassigned files in the directory. First materialize a clean, isolated
+  CA dataset containing the official 800/100 partitions and validate its 900 labels.
+  Then train/continue CA with all 800 training instances. Keep the existing 788/100
+  run as a historical comparison; it does not become an 800/100 result by adding
+  files after training.
+
+This limits new work to the incomplete MIS and CA baselines. It does not require
+repeating MVC or unrelated experiments. Never append validation instances to train;
+only the 12 verified CA training instances may fill the CA training gap.
+
+### M9a - Optional large-instance inference study (supervisor decision pending)
+
+This branch reuses a trained checkpoint on larger, unlabeled instances. It does
+not recompute B0/B1/NB labels. It can measure inference cost, trust-region
+construction, solver runtime, solution quality, primal integral, and whether a
+valid trust region is produced. It cannot report classification accuracy, F1,
+recall, or backbone-selection quality without ground-truth labels.
+
+Candidate sources are the public Distributional MIPLIB splits and the thesis'
+GeCo MIS generalization collections. Preserve source splits and record the
+exact distribution, instance sizes, citation, license, checkpoint, and solver
+configuration. The generated local scalability files are excluded until their
+formulation and distribution are independently validated against the chosen
+source.
+
+If the supervisor approves:
+
+1. Select unlabeled large-instance distributions for approved benchmarks and
+   sizes, without relabeling them.
+2. Run the existing checkpoint for inference and trust-region construction.
+3. Run the original solver and BackPaS on the same instances and hardware limits.
+4. Record per-instance graph-construction and prediction times, trust-region
+   success/failure, solver runtime, best objective, primal integral, and
+   feasibility/optimality outcomes.
+5. Report this as solver-level generalization, not supervised classification
+   performance. Backbone quality remains unverified without ground truth.
+
+Keep this branch optional until the supervisor decides; it is not part of the
+confirmed experiment matrix.
+
+**Runtime planning estimate:** existing epoch logs show validation passes over
+100 instances taking roughly 30–80 seconds, or about 0.3–0.8 seconds per
+instance on the logged local CPU environment. This includes loss/metric
+calculation and may reuse graph caches; it is not an inference-only benchmark.
+For six collections of 100 instances, a preliminary CPU planning range is about
+5–15 minutes for model-pass time, plus graph construction/loading,
+trust-region construction, solver runs, and startup. Large graphs may increase
+cost with variable and constraint counts. Measure per-instance timings before
+making a precise runtime claim. GPU can reduce neural-network time, but not
+graph conversion or solver work.
+
 ### M10 - Thesis reporting
 
 For every completed benchmark, produce:

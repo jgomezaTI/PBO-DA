@@ -44,7 +44,7 @@ shutil.copytree(SOURCE_DIR, REPO, dirs_exist_ok=True)
 
 # Our repository owns augmentation, orchestration, and audit logic. The current
 # adapter intentionally uses the pinned BackPaS GTR implementation as its trainer.
-# MVC labels are already present, so GuroBack is not needed in this notebook.
+# Existing labels are consumed as-is; any explicit re-labeling uses GuroBack.
 BACKPAS = REPO / 'external' / 'backpas'
 if not (BACKPAS / 'src/3_train.py').is_file():
     BACKPAS_URL = 'https://github.com/bryan-alvarado-ulloa/backpas.git'

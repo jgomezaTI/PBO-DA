@@ -232,8 +232,6 @@ def _extract_backbones(args: argparse.Namespace) -> int:
         args.dataset,
         partitions=tuple(args.partitions),
         threads=args.threads,
-        batch_size=args.batch_size,
-        batch_accumulation_size=args.batch_accumulation_size,
         distribution=args.distribution,
         runtime=args.runtime,
         binary_path=args.binary,

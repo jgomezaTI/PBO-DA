@@ -26,8 +26,8 @@ checkouts reproducibly.
 ## Data flow
 
 1. Place an original benchmark in `data/backpas/<BENCHMARK>/instance/`.
-2. Place the corresponding labels in `backbone/`, or extract them with GuroBack and
-   a valid Gurobi installation and licence.
+2. Place the corresponding labels in `backbone/`, or extract them with GuroBack.
+   GuroBack requires a compatible Gurobi installation and licence internally.
 3. Preserve Bryan Alvarado's original partitions. Do not repartition before the
    baseline is reproduced.
 4. Build the BackPaS graph representation from the original instances.

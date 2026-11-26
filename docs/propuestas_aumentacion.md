@@ -18,10 +18,20 @@ en `train`, transformar sus etiquetas y comparar contra la inversión global.
 **Justificación** = Cambios pequeños en restricciones pueden producir instancias
 con varias soluciones óptimas y aumentar la presencia de variables `NB`.
 
-**Definición ejecutable** = Para cada instancia de `train`, elegir con semilla
-una restricción y cambiar su RHS en `-1` o `+1`. Rechazar instancias infactibles,
-conservar solo cambios distintos del original y recalcular el backbone con el
-solver exacto. Validación y test se copian sin modificación.
+**Definición ejecutable general** = Para cada instancia de `train`, elegir con
+semilla una restricción y cambiar su RHS en `-1` o `+1`, usando el solver exacto
+para rechazar instancias infactibles y conservar solo cambios distintos del
+original. Validación y test se copian sin modificación.
+
+**Protocolo específico para MIS** = Como las restricciones de MIS tienen la
+forma `x_u + x_v <= 1`, modificar el RHS a `0` o `2` no representa una
+perturbación natural del grafo. Por eso, en MIS se añade o elimina exactamente
+una restricción de arista `x_u + x_v <= 1`. La operación se elige con semilla,
+se conserva la misma función objetivo y el mismo conjunto de variables, y se
+rechazan candidatos sin factibilidad, sin cambio real o cuyo backbone no pueda
+recalcularse exactamente. Cada candidato registra la operación, la arista
+afectada, el número de aristas antes/después y la semilla. Solo se transforma
+`train`; `validation` y `test` permanecen intactos.
 
 ## 3. Perturbación controlada de la función objetivo
 

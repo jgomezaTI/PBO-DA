@@ -11,9 +11,6 @@ import re
 import shutil
 from pathlib import Path
 
-import numpy as np
-from scipy.optimize import LinearConstraint, milp
-
 from backbone_pbo.augmentation.polarity import invert_polarity
 from backbone_pbo.io.lp import invert_lp
 from backbone_pbo.backbone import BackboneLabel, loads_backbone
@@ -61,6 +58,7 @@ def perturb_selective_polarity(instance: PBOInstance, rng: random.Random) -> PBO
 
 _LP_TERM = re.compile(r"(?P<sign>[+-])(?P<coef>\d+(?:\.\d+)?(?:[eE][+-]?\d+)?)\s+(?P<var>[A-Za-z_]\w*)")
 _LP_RELATION = re.compile(r"^(?P<prefix>\s*[^:]+:\s*)(?P<lhs>.*?)(?P<op>>=|<=|=)\s*(?P<rhs>[+-]?\d+(?:\.\d+)?)\s*$")
+_MIS_EDGE = re.compile(r"^(?P<prefix>\s*[^:]+:\s*)\+\s*x(?P<u>\d+)\s+\+\s*x(?P<v>\d+)\s*<=\s*1\s*$", re.IGNORECASE)
 
 
 def perturb_lp_text(content: str, kind: str, rng: random.Random) -> tuple[str, set[str]]:
@@ -97,111 +95,283 @@ def perturb_lp_text(content: str, kind: str, rng: random.Random) -> tuple[str, s
     return "\n".join(lines) + "\n", selected
 
 
-def exact_backbone_lp(path: Path) -> dict[str, str] | None:
-    """Compute exact optimum backbone labels for LP/MPS using SCIP feasibility proofs."""
-    try:
-        from pyscipopt import Model
-    except ImportError as exc:
-        raise RuntimeError("LP augmentation requires PySCIPOpt") from exc
-    model = Model()
-    model.hideOutput(True)
-    model.setParam("limits/gap", 0.0)
-    model.setParam("limits/absgap", 0.0)
-    model.setParam("numerics/feastol", 1e-9)
-    model.readProblem(str(path))
-    variables = list(model.getVars())
-    if any(variable.vtype() != "BINARY" for variable in variables):
-        model.freeProb()
-        raise ValueError("Exact LP backbone currently requires binary variables")
-    objective = model.getObjective()
-    sense = model.getObjectiveSense()
-    model.optimize()
-    if model.getStatus() != "optimal":
-        model.freeProb()
-        return None
-    optimum = model.getObjVal()
-    tolerance = 1e-9
-    model.freeTransform()
-    if sense == "minimize":
-        model.addCons(objective <= optimum + tolerance, name="backbone_objective_cutoff")
+def perturb_mis_edge_text(content: str, rng: random.Random) -> tuple[str, dict[str, object]]:
+    """Add or remove exactly one MIS edge constraint deterministically."""
+    lines = content.splitlines()
+    edges: dict[tuple[int, int], int] = {}
+    variables = {int(m.group("var")) for line in lines for m in
+                 re.finditer(r"\+\s*1\s+x(?P<var>\d+)", line, re.IGNORECASE)}
+    for index, line in enumerate(lines):
+        match = _MIS_EDGE.match(line)
+        if not match:
+            continue
+        edge = tuple(sorted((int(match.group("u")), int(match.group("v")))))
+        if edge[0] != edge[1]:
+            edges[edge] = index
+            variables.update(edge)
+    if not edges or len(variables) < 2:
+        raise ValueError("MIS LP does not contain recognizable edge constraints")
+    edge_set = set(edges)
+    nonedges = [(u, v) for u in sorted(variables) for v in sorted(variables)
+                if u < v and (u, v) not in edge_set]
+    add = bool(nonedges) and (not edges or rng.random() < 0.5)
+    if add:
+        u, v = rng.choice(nonedges)
+        insertion = next((i for i, line in enumerate(lines)
+                          if line.strip().lower() == "binary"), len(lines))
+        lines.insert(insertion, f"C_aug_edge_{u}_{v}: + x{u} + x{v} <= 1")
+        operation = "add_edge"
     else:
-        model.addCons(objective >= optimum - tolerance, name="backbone_objective_cutoff")
-    model.setObjective(0.0, "minimize")
-    labels: dict[str, str] = {}
+        u, v = rng.choice(sorted(edge_set))
+        del lines[edges[(u, v)]]
+        operation = "remove_edge"
+    return "\n".join(lines) + "\n", {
+        "operation": operation, "edge": [u, v],
+        "original_edge_count": len(edges),
+        "result_edge_count": len(edges) + (1 if add else -1),
+    }
+
+
+def exact_backbone_lp(path: Path) -> dict[str, str] | None:
+    """Compute exact optimum backbone labels for LP/MPS using Gurobi."""
     try:
-        for variable in variables:
-            possible: set[int] = set()
-            for value in (0, 1):
-                model.freeTransform()
-                fixed = model.addCons(variable == value, name=f"backbone_fix_{variable.name}_{value}")
-                model.optimize()
-                status = model.getStatus()
-                if status in {"optimal", "solutions found"}:
-                    possible.add(value)
-                elif status != "infeasible":
-                    return None
-                model.freeTransform()
-                model.delCons(fixed)
-            if not possible:
+        import gurobipy as gp
+    except ImportError as exc:
+        raise RuntimeError("LP/MPS augmentation requires gurobipy and a valid license") from exc
+    import os
+
+    env = gp.Env(empty=True)
+    model = None
+    try:
+        env.setParam("OutputFlag", 0)
+        env.setParam("LogToConsole", 0)
+        for key, name in (("LicenseID", "PBO_GUROBI_LICENSEID"),
+                          ("WLSAccessID", "PBO_GUROBI_WLSACCESSID"),
+                          ("WLSSecret", "PBO_GUROBI_WLSSECRET")):
+            if os.environ.get(name):
+                value = int(os.environ[name]) if key == "LicenseID" else os.environ[name]
+                env.setParam(key, value)
+        env.start()
+        model = gp.read(str(path), env=env)
+        model.Params.MIPGap = 0.0
+        model.Params.MIPGapAbs = 0.0
+        model.Params.FeasibilityTol = 1e-9
+        model.Params.DualReductions = 0
+        model.Params.Threads = int(os.environ.get("PBO_GUROBI_THREADS", "4"))
+        model.Params.MIPFocus = 2
+        # Optional bounded preflight/production runs (unset preserves exact
+        # unbounded solving). A timeout is treated as an inconclusive candidate
+        # and is rejected by the materializer rather than being mislabeled.
+        if os.environ.get("PBO_GUROBI_TIMELIMIT"):
+            model.Params.TimeLimit = float(os.environ["PBO_GUROBI_TIMELIMIT"])
+        # Detailed solver progress is written beside the run logs in Drive.
+        log_dir = Path(os.environ["PBO_GUROBI_LOG_DIR"]) if os.environ.get("PBO_GUROBI_LOG_DIR") else path.parent
+        log_dir.mkdir(parents=True, exist_ok=True)
+        model.Params.LogFile = str(log_dir / f"{path.stem}.gurobi.log")
+        model.Params.DisplayInterval = 30
+        variables = list(model.getVars())
+        if any(variable.VType != gp.GRB.BINARY for variable in variables):
+            raise ValueError("Exact LP backbone currently requires binary variables")
+        model.optimize()
+        if model.Status != gp.GRB.OPTIMAL:
+            return None
+        if not variables:
+            return {}
+
+        optimum = model.ObjVal
+        objective = model.getObjective()
+        sense = model.ModelSense
+        tolerance = 1e-8 * max(1.0, abs(optimum))
+        if sense == gp.GRB.MINIMIZE:
+            model.addConstr(objective <= optimum + tolerance, name="backbone_objective_cutoff")
+        else:
+            model.addConstr(objective >= optimum - tolerance, name="backbone_objective_cutoff")
+
+        reference = {v.VarName: int(v.X > 0.5) for v in variables}
+        unresolved = {v.VarName: v for v in variables}
+        labels: dict[str, str] = {}
+        while unresolved:
+            distance = gp.quicksum(
+                variable if reference[name] == 0 else 1 - variable
+                for name, variable in unresolved.items()
+            )
+            model.setObjective(distance, gp.GRB.MAXIMIZE)
+            model.optimize()
+            if model.Status != gp.GRB.OPTIMAL:
                 return None
-            labels[variable.name] = "NB" if len(possible) == 2 else ("B1" if possible == {1} else "B0")
+            changed = [name for name, variable in unresolved.items()
+                       if int(variable.X > 0.5) != reference[name]]
+            if not changed:
+                labels.update({name: ("B1" if reference[name] else "B0")
+                               for name in unresolved})
+                break
+            for name in changed:
+                labels[name] = "NB"
+                del unresolved[name]
         return labels
+    except gp.GurobiError as exc:
+        raise RuntimeError(f"Gurobi could not compute exact backbone for {path}") from exc
     finally:
-        model.freeProb()
+        if model is not None:
+            model.dispose()
+        env.dispose()
+
+
+def exact_mis_edge_preserves_backbone(candidate_path: Path, original_backbone_path: Path,
+                                      edge: tuple[int, int], operation: str,
+                                      original_path: Path) -> dict[str, str] | None:
+    """Certify an MIS edge edit without recomputing every backbone variable.
+
+    The original backbone is valid for the transformed instance only when the
+    edit preserves the optimum value and every optimum satisfies the edited
+    edge inequality.  Both conditions are checked exactly with Gurobi; the
+    accepted labels are then copied from the source backbone.
+    """
+    try:
+        import gurobipy as gp
+    except ImportError as exc:
+        raise RuntimeError("MIS augmentation requires gurobipy and a valid license") from exc
+    env = gp.Env(empty=True)
+    models = []
+    try:
+        env.setParam("OutputFlag", 0)
+        env.setParam("LogToConsole", 0)
+        for key, name in (("LicenseID", "PBO_GUROBI_LICENSEID"),
+                          ("WLSAccessID", "PBO_GUROBI_WLSACCESSID"),
+                          ("WLSSecret", "PBO_GUROBI_WLSSECRET")):
+            if os.environ.get(name):
+                value = int(os.environ[name]) if key == "LicenseID" else os.environ[name]
+                env.setParam(key, value)
+        env.start()
+
+        def load(path: Path):
+            model = gp.read(str(path), env=env)
+            model.Params.MIPGap = 0.0
+            model.Params.MIPGapAbs = 0.0
+            model.Params.DualReductions = 0
+            model.Params.Threads = 4
+            # Keep MIS certification bounded in pilot/production runs too.
+            # Without this, the specialized exact checker could run forever
+            # even when PBO_GUROBI_TIMELIMIT was set for the generic checker.
+            if os.environ.get("PBO_GUROBI_TIMELIMIT"):
+                model.Params.TimeLimit = float(os.environ["PBO_GUROBI_TIMELIMIT"])
+            models.append(model)
+            return model
+
+        original = load(original_path)
+        original.optimize()
+        if original.Status != gp.GRB.OPTIMAL:
+            return None
+        optimum = original.ObjVal
+
+        candidate = load(candidate_path)
+        candidate.optimize()
+        if candidate.Status != gp.GRB.OPTIMAL or abs(candidate.ObjVal - optimum) > 1e-8:
+            return None
+        u, v = edge
+        vars_by_name = {var.VarName: var for var in candidate.getVars()}
+        if f"x{u}" not in vars_by_name or f"x{v}" not in vars_by_name:
+            return None
+        objective = candidate.getObjective()
+        tolerance = 1e-8 * max(1.0, abs(optimum))
+        if candidate.ModelSense == gp.GRB.MINIMIZE:
+            candidate.addConstr(objective <= optimum + tolerance)
+        else:
+            candidate.addConstr(objective >= optimum - tolerance)
+        edge_sum = vars_by_name[f"x{u}"] + vars_by_name[f"x{v}"]
+        candidate.setObjective(edge_sum, gp.GRB.MAXIMIZE)
+        candidate.optimize()
+        if candidate.Status != gp.GRB.OPTIMAL or candidate.ObjVal > 1.0 + 1e-8:
+            return None
+        variables = [var.VarName for var in original.getVars()]
+        labels = loads_backbone(original_backbone_path.read_text(encoding="ascii"), variables)
+        return {name: ("NB" if label == BackboneLabel.NB else
+                       "B1" if label == BackboneLabel.B1 else "B0")
+                for name, label in labels.items()}
+    except gp.GurobiError as exc:
+        raise RuntimeError(f"Gurobi could not certify MIS edge edit for {candidate_path}") from exc
+    finally:
+        for model in models:
+            model.dispose()
+        env.dispose()
 
 
 def extract_exact_backbone(instance: PBOInstance) -> dict[str, str] | None:
-    """Return exact optimum labels; status 2 is treated as an unproven timeout."""
+    """Return exact optimum labels with Gurobi; inconclusive solves return None."""
     variables = sorted(instance.variables, key=variable_sort_key)
     if not variables:
         return {}
-    indices = {name: i for i, name in enumerate(variables)}
-    c = np.zeros(len(variables))
-    if instance.objective:
-        for name, coefficient in instance.objective.coefficients.items():
-            c[indices[name]] = coefficient
-    rows, lower, upper = [], [], []
-    for constraint in instance.constraints:
-        row = np.zeros(len(variables))
-        for name, coefficient in constraint.expression.coefficients.items():
-            row[indices[name]] = coefficient
-        rhs = constraint.rhs - constraint.expression.constant
-        rows.append(row)
-        if constraint.operator == ">=":
-            lower.append(rhs); upper.append(np.inf)
-        elif constraint.operator == "<=":
-            lower.append(-np.inf); upper.append(rhs)
+    try:
+        import gurobipy as gp
+    except ImportError as exc:
+        raise RuntimeError("OPB augmentation requires gurobipy and a valid license") from exc
+
+    env = gp.Env(empty=True)
+    env.setParam("OutputFlag", 0)
+    env.start()
+    model = gp.Model(env=env)
+    try:
+        model.Params.MIPGap = 0.0
+        model.Params.MIPGapAbs = 0.0
+        model.Params.FeasibilityTol = 1e-9
+        model.Params.DualReductions = 0
+        model.Params.Threads = 16
+        model.Params.MIPFocus = 2
+        decision = {name: model.addVar(vtype=gp.GRB.BINARY, name=name) for name in variables}
+        model.update()
+
+        for index, constraint in enumerate(instance.constraints):
+            lhs = gp.quicksum(coef * decision[name]
+                              for name, coef in constraint.expression.coefficients.items())
+            lhs += constraint.expression.constant
+            rhs = constraint.rhs
+            if constraint.operator == ">=":
+                model.addConstr(lhs >= rhs, name=f"c{index}")
+            elif constraint.operator == "<=":
+                model.addConstr(lhs <= rhs, name=f"c{index}")
+            else:
+                model.addConstr(lhs == rhs, name=f"c{index}")
+
+        objective = instance.objective
+        objective_expr = gp.quicksum(
+            coef * decision[name] for name, coef in objective.coefficients.items()
+        ) if objective else gp.LinExpr(0.0)
+        if objective:
+            objective_expr += objective.constant
+            model.setObjective(objective_expr, gp.GRB.MINIMIZE)
         else:
-            lower.append(rhs); upper.append(rhs)
-    matrix = np.vstack(rows) if rows else np.empty((0, len(variables)))
-    base = [LinearConstraint(matrix, lower, upper)] if rows else None
-    kwargs = {"c": c, "integrality": np.ones(len(variables)),
-              "bounds": (np.zeros(len(variables)), np.ones(len(variables))),
-              "constraints": base}
-    optimum = milp(**kwargs)
-    if optimum.status != 0 or optimum.fun is None or optimum.x is None:
-        return None
-    optimum_value = float(optimum.fun)
-    if instance.objective:
-        optimum_value += instance.objective.constant
-    labels: dict[str, str] = {}
-    tolerance = 1e-7
-    for i, name in enumerate(variables):
-        possible = set()
-        for value in (0, 1):
-            lo = np.zeros(len(variables)); hi = np.ones(len(variables))
-            lo[i] = hi[i] = value
-            objective_constraint = LinearConstraint(c.reshape(1, -1), -np.inf,
-                optimum_value - (instance.objective.constant if instance.objective else 0) + tolerance)
-            constraints = [*([base[0]] if base else []), objective_constraint]
-            result = milp(c=np.zeros(len(variables)), integrality=np.ones(len(variables)),
-                          bounds=(lo, hi), constraints=constraints)
-            if result.status == 0 and result.x is not None:
-                possible.add(value)
-            elif result.status not in (2,):
+            model.setObjective(0.0, gp.GRB.MINIMIZE)
+        model.optimize()
+        if model.Status != gp.GRB.OPTIMAL:
+            return None
+
+        optimum = model.ObjVal
+        sense = model.ModelSense
+        tolerance = 1e-6
+        labels: dict[str, str] = {}
+        for name in variables:
+            possible: set[int] = set()
+            variable = decision[name]
+            for value in (0, 1):
+                old_lb, old_ub = variable.LB, variable.UB
+                variable.LB = variable.UB = value
+                model.update()
+                model.optimize()
+                if model.Status == gp.GRB.OPTIMAL:
+                    if abs(model.ObjVal - optimum) <= tolerance:
+                        possible.add(value)
+                elif model.Status != gp.GRB.INFEASIBLE:
+                    return None
+                variable.LB, variable.UB = old_lb, old_ub
+                model.update()
+            if not possible:
                 return None
-        labels[name] = "NB" if len(possible) == 2 else ("B1" if possible == {1} else "B0")
-    return labels
+            labels[name] = "NB" if len(possible) == 2 else ("B1" if possible == {1} else "B0")
+        model.setObjective(objective_expr, sense)
+        return labels
+    finally:
+        model.dispose()
+        env.dispose()
 
 
 def render_backbone(labels: dict[str, str]) -> str:
@@ -267,18 +437,17 @@ def materialize(source: Path, output: Path, *, kind: str, seed: int,
             is_lp = instance_path.suffix.lower() in {".lp", ".mps"}
             if instance_path.suffix.lower() == ".mps":
                 try:
-                    from pyscipopt import Model
+                    import gurobipy as gp
                 except ImportError as exc:
-                    raise RuntimeError("MPS augmentation requires PySCIPOpt") from exc
+                    raise RuntimeError("MPS augmentation requires gurobipy and a valid license") from exc
                 normalized_path = output_instance / f".normalized_{original_name}.lp"
-                normalizer = Model()
-                normalizer.hideOutput(True)
+                normalizer = gp.read(str(instance_path))
                 try:
-                    normalizer.readProblem(str(instance_path))
-                    normalizer.writeProblem(str(normalized_path), trans=False)
+                    normalizer.Params.OutputFlag = 0
+                    normalizer.write(str(normalized_path))
                     lp_source_text = normalized_path.read_text(encoding="utf-8")
                 finally:
-                    normalizer.freeProb()
+                    normalizer.dispose()
                     normalized_path.unlink(missing_ok=True)
             original = None if is_lp else loads_opb(original_text)
             (output_instance / original_name).write_text(original_text, encoding="ascii")
@@ -323,11 +492,21 @@ def materialize(source: Path, output: Path, *, kind: str, seed: int,
                                         labels[name] = "B1" if label == BackboneLabel.B1 else "B0"
                                 candidate = (transformed, labels)
                                 break
-                            transformed, _ = perturb_lp_text(lp_source_text, kind, rng)
+                            if kind == "constraint" and source.name.upper() == "MIS":
+                                transformed, operation = perturb_mis_edge_text(lp_source_text, rng)
+                            else:
+                                transformed, _ = perturb_lp_text(lp_source_text, kind, rng)
+                                operation = {"operation": "rhs_or_objective_perturbation"}
                             candidate_path = output_instance / f".candidate_{replica}_{original_name}.lp"
                             try:
                                 candidate_path.write_text(transformed, encoding="ascii")
-                                labels = exact_backbone_lp(candidate_path)
+                                if kind == "constraint" and source.name.upper() == "MIS":
+                                    labels = exact_mis_edge_preserves_backbone(
+                                        candidate_path, backbone_path,
+                                        tuple(operation["edge"]), operation["operation"],
+                                        instance_path)
+                                else:
+                                    labels = exact_backbone_lp(candidate_path)
                             finally:
                                 candidate_path.unlink(missing_ok=True)
                             if labels is None:
@@ -365,8 +544,12 @@ def materialize(source: Path, output: Path, *, kind: str, seed: int,
     (partial / "partitions.json").write_text(json.dumps(output_partitions, indent=2) + "\n", encoding="utf-8")
     record = {"kind": kind, "seed": seed, "replicas_per_train_instance": replicas,
               "attempts_per_replica": attempts, "generated": len(generated), "rejected": rejected,
-              "label_solver": "exact transformation for selective polarity; PySCIPOpt for LP/MPS; scipy.optimize.milp for OPB",
-              "perturbation": "single RHS +/-1; objective coefficient +/-1"}
+              "label_solver": ("exact transformation for selective polarity; MIS edge edits use "
+                               "an exact optimum-preservation certificate; Gurobi backbone for "
+                               "other OPB/LP/MPS edits"),
+              "perturbation": ("MIS: add or remove exactly one edge constraint x_u+x_v<=1, "
+                               "accepted only when the optimum and all optimum edge assignments "
+                               "are preserved; other problems: single RHS +/-1; objective coefficient +/-1")}
     (partial / "augmentation.json").write_text(json.dumps(record, indent=2) + "\n", encoding="utf-8")
     partial.replace(output)
     return {"generated": len(generated), "rejected": rejected}

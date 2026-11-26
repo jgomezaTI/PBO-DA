@@ -105,7 +105,14 @@ def main() -> int:
                          "--kind", job["augmentation_kind"], "--seed", str(job["seed"]),
                          "--replicas", str(job.get("replicas", 1)), "--attempts", str(job.get("attempts", 20))]
             print("Generating dataset:", " ".join(generator), flush=True)
-            generated = subprocess.run(generator, cwd=repo, env={**os.environ, "PYTHONUNBUFFERED": "1"})
+            generator_env = {**os.environ, "PYTHONUNBUFFERED": "1"}
+            if args.drive_root:
+                generator_env["PBO_GUROBI_LOG_DIR"] = str(work / "gurobi")
+            try:
+                generated = subprocess.run(generator, cwd=repo, env=generator_env)
+            except KeyboardInterrupt:
+                write_status(status, job=args.job, state="interrupted", stage="generation")
+                raise
             if generated.returncode != 0:
                 write_status(status, job=args.job, state="failed", stage="generation",
                              return_code=generated.returncode)

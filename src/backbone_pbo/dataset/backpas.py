@@ -163,7 +163,13 @@ def extract_backbones(
             _runtime_path(partial, runtime=runtime, distribution=distribution),
         ]
         command = _runtime_command(tool_arguments, runtime=runtime, distribution=distribution)
-        completed = subprocess.run(command, check=False, capture_output=True, text=True)
+        completed = subprocess.run(
+            command,
+            check=False,
+            capture_output=True,
+            text=True,
+            env=_runtime_environment(runtime),
+        )
         log_payload = {
             "instance": name,
             "partition": partition,
@@ -463,6 +469,24 @@ def _runtime_command(arguments: list[str], *, runtime: str, distribution: str) -
     if runtime in {"native", "colab"}:
         return arguments
     raise BackPaSError(f"Unsupported runtime: {runtime}")
+
+
+def _runtime_environment(runtime: str) -> dict[str, str]:
+    """Forward a Windows Gurobi license file path into WSL when extracting."""
+
+    environment = os.environ.copy()
+    license_path = environment.get("GRB_LICENSE_FILE")
+    if runtime != "wsl" or not license_path:
+        return environment
+
+    entries = [
+        entry
+        for entry in environment.get("WSLENV", "").split(":")
+        if entry and entry.split("/", 1)[0] != "GRB_LICENSE_FILE"
+    ]
+    entries.append("GRB_LICENSE_FILE/p")
+    environment["WSLENV"] = ":".join(entries)
+    return environment
 
 
 def _environment_command(command: str, *, runtime: str, distribution: str) -> list[str]:
