@@ -33,7 +33,7 @@ def notebook(technique: str, label: str, kind: str) -> dict:
 drive.mount('/content/drive', force_remount=True)
 
 from pathlib import Path
-import json, os, shutil, subprocess, sys
+import hashlib, json, os, shutil, subprocess, sys
 
 DRIVE_ROOT = Path('/content/drive/MyDrive/PBO Tesis')
 REPO = Path('/content/backbone-pbo')
@@ -93,7 +93,22 @@ if not (dest / 'partitions.json').is_file():
     print('Particiones reconstruidas desde nombres y etiquetas:',
           {name: len(files) for name, files in partitions.items()})
 if not (dest / 'source.json').is_file():
-    print('Aviso: source.json no está en Drive; la auditoría lo marcará como procedencia incompleta.')
+    partitions = json.loads((dest / 'partitions.json').read_text(encoding='utf-8'))
+    split_by_name = {name: split for split, names in partitions['partitions'].items()
+                     for name in names}
+    files = []
+    for path in sorted((dest / 'instance').iterdir()):
+        if path.is_file():
+            files.append({'local_name': path.name,
+                          'partition': split_by_name.get(path.name),
+                          'sha256': hashlib.sha256(path.read_bytes()).hexdigest()})
+    (dest / 'source.json').write_text(json.dumps({
+        'schema_version': 1,
+        'dataset': PROBLEM,
+        'status': 'reconstructed from the Drive dataset; original source manifest unavailable',
+        'files': files,
+    }, indent=2) + '\n', encoding='utf-8')
+    print('source.json reconstruido desde las instancias de Drive; procedencia original no disponible.')
 instance_count = sum(1 for path in (dest / 'instance').iterdir() if path.is_file())
 instance_names = {path.name for path in (dest / 'instance').iterdir() if path.is_file()}
 backbone_files = {path.name for path in (dest / 'backbone').glob('*.backbone') if path.is_file()}
