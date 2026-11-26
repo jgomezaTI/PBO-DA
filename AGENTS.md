@@ -23,6 +23,18 @@ metodológico acordado con el autor de la tesis.
   como evidencia suficiente.
 - Si el código local tiene cambios sin publicar o el commit consumido por
   Colab no está identificado, detener el lanzamiento experimental y explicarlo.
+- El autor autoriza al agente a ejecutar, cuando el flujo ya esté preflightado,
+  las operaciones normales de implementación experimental: abrir el notebook
+  publicado, conectar el runtime de Colab, conectar el MCP de Colab cuando
+  esté disponible, montar Drive, ejecutar las celdas de preparación y
+  entrenamiento, y revisar el estado de la corrida. Esta autorización aplica
+  también en chats futuros y no elimina las comprobaciones de integridad,
+  cuenta, repositorio, commit, particiones, logs o checkpoints.
+- Si Colab no dispone de GPU, el agente puede aceptar el entorno CPU y ejecutar
+  el entrenamiento completo, sin reducir dataset, épocas ni validaciones. Las
+  advertencias normales de notebooks cargados desde GitHub pueden aceptarse
+  dentro de este flujo autorizado después de verificar el repositorio y el
+  commit consumido.
 
 ## Integridad experimental
 
@@ -103,3 +115,4 @@ puede eliminar artefactos inválidos; no recrearlos sin solicitud explícita.
 - No incluir dónde se guardaron los archivos, si se almacenaron en Drive ni
   dependencias de un equipo personal. La persistencia y ubicación de artefactos
   pertenecen a la gestión del proyecto, no al argumento académico.
+
