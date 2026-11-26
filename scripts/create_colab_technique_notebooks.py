@@ -190,7 +190,7 @@ if 'CUBLAS_WORKSPACE_CONFIG' not in runner_source:
         '    os.environ.setdefault("CUBLAS_WORKSPACE_CONFIG", ":4096:8")',
     )
 runner.write_text(runner_source, encoding='utf-8')
-print('BackPaS GTR, 8 capas, 65 épocas, lr=0.001, batch=64, acumulación=64, seed=0.')
+print('BackPaS GTR, 8 capas, 65 épocas, lr=0.001, batch=8, acumulación=32, seed=0.')
 
 for JOB in JOBS:
     command = [sys.executable, 'scripts/cloud_run.py', '--repo', str(REPO),
