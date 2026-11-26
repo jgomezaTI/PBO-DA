@@ -9,6 +9,26 @@ Cada fila es independiente y usa el directorio:
 results/<problema>/<técnica>/seed-<semilla>/
 ```
 
+## Flujo operativo PC → GitHub → Colab → Drive
+
+El flujo acordado para los entrenamientos es:
+
+1. Desarrollar y validar los cambios en el PC, respetando el `AGENTS.md` y el
+   preflight experimental.
+2. Revisar el diff, registrar los cambios relevantes y hacer commit.
+3. Hacer `push` al repositorio de GitHub que consume Colab.
+4. Abrir el notebook desde ese repositorio y confirmar la cuenta, repositorio,
+   rama y commit que se ejecutarán.
+5. Ejecutar en Colab la combinación problema/técnica/semilla seleccionada,
+   usando Drive como fuente de datos y destino persistente de resultados.
+6. Auditar en Drive particiones, manifiesto, estado, logs, validación y
+   checkpoints antes de considerar la corrida terminada o reportable.
+
+La copia local no sustituye la evidencia de Drive: si el código local cambió,
+Colab debe consumir explícitamente el commit publicado mediante `git clone` o
+`git pull --ff-only`. No se debe iniciar una corrida desde una versión local no
+publicada cuando el objetivo sea reproducibilidad.
+
 ## Colab + Drive
 
 1. Abrir los cuatro notebooks maestros, uno por técnica, cada uno en su propia
