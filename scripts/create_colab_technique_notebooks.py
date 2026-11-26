@@ -169,8 +169,9 @@ settings = json.loads(matrix_path.read_text(encoding='utf-8'))
 settings['defaults'].update({
     'epochs': 65,
     'threads': 4,
-    'batch_size': 64,
-    'batch_accumulation_size': 64,
+    # Keep the effective accumulation protocol while fitting the 16-GiB T4.
+    'batch_size': 8,
+    'batch_accumulation_size': 32,
     'cuda': True,
 })
 matrix_path.write_text(json.dumps(settings, indent=2) + '\n', encoding='utf-8')
@@ -242,4 +243,3 @@ def main() -> int:
 
 if __name__ == '__main__':
     raise SystemExit(main())
-
