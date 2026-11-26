@@ -35,7 +35,7 @@ drive.mount('/content/drive', force_remount=True)
 from pathlib import Path
 import json, os, shutil, subprocess, sys
 
-DRIVE_ROOT = Path('/content/drive/MyDrive/PBO-Tesis')
+DRIVE_ROOT = Path('/content/drive/MyDrive/PBO Tesis')
 REPO = Path('/content/backbone-pbo')
 SOURCE_DIR = DRIVE_ROOT / 'runs/colab-source'
 if not (SOURCE_DIR / 'pyproject.toml').is_file():
@@ -242,3 +242,4 @@ def main() -> int:
 
 if __name__ == '__main__':
     raise SystemExit(main())
+
